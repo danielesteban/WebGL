@@ -1,2 +1,2 @@
-export { default as TestVertex } from './test.vert';
-export { default as TestFragment } from './test.frag';
+export { default as StandardVertex } from './standard.vert';
+export { default as StandardFragment } from './standard.frag';

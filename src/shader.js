@@ -19,6 +19,8 @@ class Shader {
     };
     this.uniforms = {
       albedo: GL.getUniformLocation(program, 'albedo'),
+      camera: GL.getUniformLocation(program, 'camera'),
+      transform: GL.getUniformLocation(program, 'transform'),
     };
   }
 
