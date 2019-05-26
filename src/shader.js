@@ -11,7 +11,7 @@ class Shader {
     GL.attachShader(program, fragment);
     GL.linkProgram(program);
     if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
-      console.log(`${vertex}\n${fragment}`);
+      console.log(`${shaders.vertex}\n${shaders.fragment}`);
     }
     this.program = program;
     this.attributes = {

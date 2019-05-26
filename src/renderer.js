@@ -11,7 +11,7 @@ class Renderer {
       alpha: false,
       antialias: true,
       depth: true,
-      preserveDrawingBuffer: true,
+      preserveDrawingBuffer: false,
       powerPreference: 'high-performance',
       stencil: false,
     });
@@ -50,7 +50,7 @@ class Renderer {
     canvas.width = width;
     canvas.height = height;
     GL.viewport(0, 0, GL.drawingBufferWidth, GL.drawingBufferHeight);
-    camera.onResize({ width, height });
+    camera.setAspect(GL.drawingBufferWidth / GL.drawingBufferHeight);
   }
 }
 
