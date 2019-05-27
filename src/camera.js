@@ -2,8 +2,8 @@ import { glMatrix, mat4, vec3 } from 'gl-matrix';
 
 class Camera {
   constructor() {
-    this.position = vec3.create();
-    this.tilt = glMatrix.toRadian(270);
+    this.position = vec3.fromValues(0, 1.5, 0);
+    this.yaw = glMatrix.toRadian(270);
     this.pitch = 0;
 
     this.lookAt = vec3.create();
@@ -29,15 +29,15 @@ class Camera {
       front,
       right,
       up,
-      tilt,
+      yaw,
       pitch,
       worldUp,
     } = this;
     vec3.set(
       front,
-      Math.cos(tilt) * Math.cos(pitch),
+      Math.cos(yaw) * Math.cos(pitch),
       Math.sin(pitch),
-      Math.sin(tilt) * Math.cos(pitch)
+      Math.sin(yaw) * Math.cos(pitch)
     );
     vec3.normalize(front, front);
     vec3.cross(right, front, worldUp);

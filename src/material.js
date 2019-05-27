@@ -1,4 +1,4 @@
-class Shader {
+class Material {
   constructor({
     context: GL,
     shaders,
@@ -14,9 +14,6 @@ class Shader {
       console.log(`${shaders.vertex}\n${shaders.fragment}`);
     }
     this.program = program;
-    this.attributes = {
-      position: GL.getAttribLocation(program, 'position'),
-    };
     this.uniforms = {
       albedo: GL.getUniformLocation(program, 'albedo'),
       camera: GL.getUniformLocation(program, 'camera'),
@@ -36,4 +33,4 @@ class Shader {
   }
 }
 
-export default Shader;
+export default Material;

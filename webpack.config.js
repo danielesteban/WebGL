@@ -18,8 +18,11 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(vert|frag)$/,
-        loader: 'raw-loader',
+        test: /\.(vert|frag|glsl)$/,
+        loader:  [
+          'raw-loader',
+          'glslify-loader',
+        ],
         include: srcPath,
       },
     ],

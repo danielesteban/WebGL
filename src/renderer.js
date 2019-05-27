@@ -1,4 +1,5 @@
 import Camera from '@/camera';
+import Scene from './scene';
 
 class Renderer {
   constructor({
@@ -29,18 +30,13 @@ class Renderer {
 
   onAnimationTick() {
     requestAnimationFrame(this.onAnimationTick.bind(this));
-    const { camera, context: GL, lastTick } = this;
+    const { lastTick, scene } = this;
     const time = window.performance.now();
     const delta = time - lastTick;
     this.lastTick = time;
-    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-    if (this.onAnimationFrame) {
-      this.onAnimationFrame({
-        camera,
-        GL,
-        time,
-        delta,
-      });
+    if (scene) {
+      scene.animate({ delta, time });
+      scene.render();
     }
   }
 
@@ -51,6 +47,10 @@ class Renderer {
     canvas.height = height;
     GL.viewport(0, 0, GL.drawingBufferWidth, GL.drawingBufferHeight);
     camera.setAspect(GL.drawingBufferWidth / GL.drawingBufferHeight);
+  }
+
+  setScene(Scene) {
+    this.scene = new Scene({ renderer: this });
   }
 }
 
