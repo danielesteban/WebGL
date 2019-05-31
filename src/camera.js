@@ -1,4 +1,9 @@
-import { glMatrix, mat4, vec3 } from 'gl-matrix';
+import {
+  glMatrix,
+  mat4,
+  vec3,
+  vec2,
+} from 'gl-matrix';
 
 class Camera {
   constructor() {
@@ -17,6 +22,45 @@ class Camera {
     this.view = mat4.create();
 
     this.updateVectors();
+  }
+
+  processInput({
+    input: {
+      isLocked,
+      keyboard,
+      mouse,
+    },
+    delta,
+  }) {
+    if (!isLocked) {
+      return;
+    }
+    if (mouse[0] !== 0 || mouse[1] !== 0) {
+      const sensitivity = 0.003;
+      this.yaw += mouse[0] * sensitivity;
+      this.pitch -= mouse[1] * sensitivity;
+      const PI_2 = Math.PI / 2 * 0.99;
+      this.pitch = Math.max(-PI_2, Math.min(PI_2, this.pitch));
+      vec2.set(mouse, 0, 0);
+      this.updateVectors();
+    }
+
+    if (keyboard[0] !== 0 || keyboard[1] !== 0 || keyboard[2] !== 0) {
+      const {
+        front,
+        lookAt,
+        position,
+        right,
+        up,
+      } = this;
+      vec3.set(lookAt, 0, 0, 0);
+      vec3.scaleAndAdd(lookAt, lookAt, right, keyboard[0]);
+      vec3.scaleAndAdd(lookAt, lookAt, up, keyboard[1]);
+      vec3.scaleAndAdd(lookAt, lookAt, front, keyboard[2]);
+      vec3.normalize(lookAt, lookAt, lookAt);
+      vec3.scaleAndAdd(position, position, lookAt, delta * 0.005);
+      this.updateTransform();
+    }
   }
 
   setAspect(aspect) {

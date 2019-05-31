@@ -1,7 +1,38 @@
+import Geometry from '@/geometry';
+import Material from '@/material';
+import {
+  PostprocessingVertex,
+  PostprocessingFragment,
+} from '@/shaders';
+
 class Scene {
   constructor({ renderer }) {
     this.renderer = renderer;
     this.root = [];
+    this.frame = new Geometry({
+      context: renderer.context,
+      position: [
+        -1, 1, 0,
+        1, 1, 0,
+        1, -1, 0,
+        1, -1, 0,
+        -1, -1, 0,
+        -1, 1, 0,
+      ],
+    });
+    this.postprocessing = new Material({
+      context: renderer.context,
+      shaders: {
+        vertex: PostprocessingVertex,
+        fragment: PostprocessingFragment,
+      },
+      uniforms: [
+        'camera',
+        'colorTexture',
+        'normalTexture',
+        'positionTexture',
+      ],
+    });
   }
 
   animate({ delta, time }) {
@@ -32,6 +63,7 @@ class Scene {
         GL.uniformMatrix4fv(material.uniforms.camera, false, camera.transform);
       });
 
+    GL.enable(GL.DEPTH_TEST);
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     root.forEach(({
       albedo,
@@ -50,6 +82,30 @@ class Scene {
       }
       GL.bindVertexArray(null);
     });
+    GL.disable(GL.DEPTH_TEST);
+  }
+
+  postprocess({ colorTexture, normalTexture, positionTexture }) {
+    const {
+      renderer: { camera, context: GL },
+      frame,
+      postprocessing,
+    } = this;
+    GL.clear(GL.COLOR_BUFFER_BIT);
+    GL.useProgram(postprocessing.program);
+    GL.uniform3fv(postprocessing.uniforms.camera, camera.position);
+    GL.activeTexture(GL.TEXTURE0);
+    GL.bindTexture(GL.TEXTURE_2D, colorTexture);
+    GL.uniform1i(postprocessing.uniforms.colorTexture, 0);
+    GL.activeTexture(GL.TEXTURE1);
+    GL.bindTexture(GL.TEXTURE_2D, normalTexture);
+    GL.uniform1i(postprocessing.uniforms.normalTexture, 1);
+    GL.activeTexture(GL.TEXTURE2);
+    GL.bindTexture(GL.TEXTURE_2D, positionTexture);
+    GL.uniform1i(postprocessing.uniforms.positionTexture, 2);
+    GL.bindVertexArray(frame.vao);
+    GL.drawArrays(GL.TRIANGLES, 0, frame.count);
+    GL.bindVertexArray(null);
   }
 }
 

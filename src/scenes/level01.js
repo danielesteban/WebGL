@@ -27,6 +27,12 @@ class Level01 extends Scene {
           10, 0, -10,
           -10, 0, -10,
         ],
+        normal: [
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+        ],
         index: [
           0, 1, 2,
           2, 3, 0,
@@ -35,10 +41,16 @@ class Level01 extends Scene {
       wall: new Geometry({
         context,
         position: [
-          -1, 1, 0,
-          1, 1, 0,
-          1, -1, 0,
-          -1, -1, 0,
+          -5, 1, 0,
+          5, 1, 0,
+          5, -1, 0,
+          -5, -1, 0,
+        ],
+        normal: [
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
         ],
         index: [
           0, 1, 2,
@@ -51,6 +63,11 @@ class Level01 extends Scene {
           -0.5, -0.5, 0,
           0.5, -0.5, 0,
           0, 0.5, 0,
+        ],
+        normal: [
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
         ],
       }),
     };
@@ -91,13 +108,13 @@ class Level01 extends Scene {
       // Walls
       {
         albedo: [0, 0.5, 0],
-        position: [-9, 1, -10],
+        position: [-5, 1, -10],
         geometry: geometries.wall,
         material: materials.standard,
       },
       {
         albedo: [0, 0, 1],
-        position: [9, 1, -10],
+        position: [5, 1, -10],
         geometry: geometries.wall,
         material: materials.standard,
       },
@@ -120,16 +137,6 @@ class Level01 extends Scene {
       const mesh = new Mesh(data);
       root.push(mesh);
     });
-  }
-
-  animate(args) {
-    super.animate(args);
-    const { time } = args;
-    const { renderer: { camera } } = this;
-    const animation = Math.sin(time * 0.001);
-    camera.position[2] = 3 + animation;
-    camera.yaw = Math.PI * 1.5 + animation * 0.1;
-    camera.updateVectors();
   }
 }
 

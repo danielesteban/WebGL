@@ -2,6 +2,11 @@ class Material {
   constructor({
     context: GL,
     shaders,
+    uniforms = [
+      'albedo',
+      'camera',
+      'transform',
+    ],
   }) {
     this.context = GL;
     const vertex = this.compile('VERTEX_SHADER', shaders.vertex);
@@ -14,11 +19,10 @@ class Material {
       console.log(`${shaders.vertex}\n${shaders.fragment}`);
     }
     this.program = program;
-    this.uniforms = {
-      albedo: GL.getUniformLocation(program, 'albedo'),
-      camera: GL.getUniformLocation(program, 'camera'),
-      transform: GL.getUniformLocation(program, 'transform'),
-    };
+    this.uniforms = uniforms.reduce((locations, id) => {
+      locations[id] = GL.getUniformLocation(program, id);
+      return locations;
+    }, {});
   }
 
   compile(type, source) {
