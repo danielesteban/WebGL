@@ -3,14 +3,14 @@ import { mat4, vec3, quat } from 'gl-matrix';
 class Mesh {
   constructor({
     albedo,
-    position = [0, 0, 0],
-    rotation = [0, 0, 0, 1],
-    scale = [1, 1, 1],
+    position = new Float32Array([0, 0, 0]),
+    rotation = new Float32Array([0, 0, 0, 1]),
+    scale = new Float32Array([1, 1, 1]),
     geometry,
     material,
     onAnimationFrame,
   }) {
-    this.albedo = new Float32Array(albedo);
+    this.albedo = albedo;
     this.geometry = geometry;
     this.material = material;
     this.transform = mat4.create();

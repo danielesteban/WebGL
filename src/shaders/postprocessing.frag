@@ -6,50 +6,32 @@ in vec2 fragUV;
 
 uniform vec3 camera;
 uniform sampler2D colorTexture;
+uniform sampler2D depthTexture;
 uniform sampler2D positionTexture;
 uniform sampler2D normalTexture;
 
-float sobel(in vec2 resolution) {
-	float x = 1.0 / resolution.x * 2.0;
-	float y = 1.0 / resolution.y * 2.0;
-  vec4 horizEdge = vec4(0.0);
-	horizEdge -= texture(normalTexture, vec2(fragUV.x - x, fragUV.y - y)) * 1.0;
-	horizEdge -= texture(normalTexture, vec2(fragUV.x - x, fragUV.y    )) * 2.0;
-	horizEdge -= texture(normalTexture, vec2(fragUV.x - x, fragUV.y + y)) * 1.0;
-	horizEdge += texture(normalTexture, vec2(fragUV.x + x, fragUV.y - y)) * 1.0;
-	horizEdge += texture(normalTexture, vec2(fragUV.x + x, fragUV.y    )) * 2.0;
-	horizEdge += texture(normalTexture, vec2(fragUV.x + x, fragUV.y + y)) * 1.0;
-	vec4 vertEdge = vec4(0.0);
-	vertEdge -= texture(normalTexture, vec2(fragUV.x - x, fragUV.y - y)) * 1.0;
-	vertEdge -= texture(normalTexture, vec2(fragUV.x    , fragUV.y - y)) * 2.0;
-	vertEdge -= texture(normalTexture, vec2(fragUV.x + x, fragUV.y - y)) * 1.0;
-	vertEdge += texture(normalTexture, vec2(fragUV.x - x, fragUV.y + y)) * 1.0;
-	vertEdge += texture(normalTexture, vec2(fragUV.x    , fragUV.y + y)) * 2.0;
-	vertEdge += texture(normalTexture, vec2(fragUV.x + x, fragUV.y + y)) * 1.0;
-	vec3 edge = sqrt((horizEdge.rgb * horizEdge.rgb) + (vertEdge.rgb * vertEdge.rgb));
-	return edge.r + edge.g + edge.b;
-}
+@import ./sobel;
 
 void main(void) {
-	vec2 resolution = vec2(textureSize(colorTexture, 0));
+  vec2 resolution = vec2(textureSize(colorTexture, 0));
 
   vec3 color = texture(colorTexture, fragUV).rgb;
   vec3 position = texture(positionTexture, fragUV).rgb;
 
-	// edge detection
-	float edge = sobel(resolution);
-	if (edge > 3.5) {
-		color *= edge / 3.0;
-	}
+  // edge detection
+  float edge = Sobel(depthTexture, resolution);
+  if (edge >= 0.005) {
+    color -= vec3(0.25);
+  }
 
   // attenuation
   float distance = length(camera - position);
-	float attenuation = 1.0 / (1.0 + 0.05 * distance + 0.032 * (distance * distance));  
-	color *= attenuation;
+  float attenuation = 1.0 / (1.0 + 0.05 * distance + 0.016 * (distance * distance));  
+  color *= attenuation * 2.0;
 
   // vignette
-	float vignette = smoothstep(0.75, 0.5, length(fragUV - vec2(0.5)));
-	color = mix(color, color * vignette, 0.5);
+  float vignette = smoothstep(0.75, 0.5, length(fragUV - vec2(0.5)));
+  color = mix(color, color * vignette, 0.5);
 
-	outColor = vec4(color, 1.0);
+  outColor = vec4(color, 1.0);
 }

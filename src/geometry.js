@@ -19,14 +19,20 @@ class Geometry {
       GL.vertexAttribPointer(attributes[attribute], size, type, false, 0, 0);
       vbos.push(buffer);
     };
-    createAndBindVBO(new Float32Array(position), 'position', 3);
-    createAndBindVBO(new Float32Array(normal), 'normal', 3);
-    createAndBindVBO(new Float32Array(color), 'color', 3);
-    createAndBindVBO(new Float32Array(uv), 'uv', 2);
+    createAndBindVBO(position, 'position', 3);
+    if (normal) {
+      createAndBindVBO(normal, 'normal', 3);
+    }
+    if (color) {
+      createAndBindVBO(color, 'color', 3);
+    }
+    if (uv) {
+      createAndBindVBO(uv, 'uv', 2);
+    }
     if (index) {
       const ebo = GL.createBuffer();
       GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ebo);
-      GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(index), GL.STATIC_DRAW);
+      GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, index, GL.STATIC_DRAW);
       this.ebo = ebo;
       this.count = index.length;
     } else {

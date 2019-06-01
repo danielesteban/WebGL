@@ -8,13 +8,17 @@ class Framebuffer {
 
     this.renderBuffer = GL.createFramebuffer();
     GL.bindFramebuffer(GL.FRAMEBUFFER, this.renderBuffer);
-    textures.forEach(({ id, attachment }) => {
+    textures.forEach(({
+      id,
+      attachment,
+      internalFormat = 'RGBA32F',
+    }) => {
       this[`${id}Buffer`] = GL.createRenderbuffer();
       GL.bindRenderbuffer(GL.RENDERBUFFER, this[`${id}Buffer`]);
       GL.renderbufferStorageMultisample(
         GL.RENDERBUFFER,
         GL.getParameter(GL.MAX_SAMPLES),
-        id === 'depth' ? GL.DEPTH_COMPONENT24 : GL.RGBA32F,
+        GL[internalFormat],
         width,
         height
       );
@@ -30,7 +34,13 @@ class Framebuffer {
 
     this.outputBuffer = GL.createFramebuffer();
     GL.bindFramebuffer(GL.FRAMEBUFFER, this.outputBuffer);
-    textures.forEach(({ id, attachment }) => {
+    textures.forEach(({
+      id,
+      attachment,
+      internalFormat = 'RGBA32F',
+      format = 'RGBA',
+      type = 'FLOAT',
+    }) => {
       this[`${id}Texture`] = GL.createTexture();
       GL.bindTexture(GL.TEXTURE_2D, this[`${id}Texture`]);
       GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.NEAREST);
@@ -40,18 +50,37 @@ class Framebuffer {
       GL.texImage2D(
         GL.TEXTURE_2D,
         0,
-        id === 'depth' ? GL.DEPTH_COMPONENT32F : GL.RGBA32F,
+        GL[internalFormat],
         width,
         height,
         0,
-        id === 'depth' ? GL.DEPTH_COMPONENT : GL.RGBA,
-        GL.FLOAT,
+        GL[format],
+        GL[type],
         null
       );
       GL.framebufferTexture2D(GL.FRAMEBUFFER, GL[attachment], GL.TEXTURE_2D, this[`${id}Texture`], 0);
       GL.bindTexture(GL.TEXTURE_2D, null);
     });
     GL.bindFramebuffer(GL.FRAMEBUFFER, null);
+
+    const attachments = textures.reduce(({ max, index }, { attachment }) => {
+      if (attachment.indexOf('COLOR_ATTACHMENT') === 0) {
+        max = Math.max(max, parseInt(attachment.substr('COLOR_ATTACHMENT'.length), 10));
+        index[attachment] = true;
+      }
+      return { max, index };
+    }, {
+      max: 0,
+      index: {},
+    });
+    this.attachments = [...Array(attachments.max + 1)].map((v, i) => {
+      const attachment = `COLOR_ATTACHMENT${i}`;
+      return attachments.index[attachment] ? (
+        GL[attachment]
+      ) : (
+        GL.NONE
+      );
+    });
   }
 
   dispose() {
@@ -74,18 +103,23 @@ Framebuffer.textures = [
   {
     id: 'color',
     attachment: 'COLOR_ATTACHMENT0',
-  },
-  {
-    id: 'position',
-    attachment: 'COLOR_ATTACHMENT1',
-  },
-  {
-    id: 'normal',
-    attachment: 'COLOR_ATTACHMENT2',
+    internalFormat: 'RGBA8',
+    type: 'UNSIGNED_BYTE',
   },
   {
     id: 'depth',
     attachment: 'DEPTH_ATTACHMENT',
+    internalFormat: 'DEPTH_COMPONENT24',
+    format: 'DEPTH_COMPONENT',
+    type: 'UNSIGNED_INT',
+  },
+  {
+    id: 'normal',
+    attachment: 'COLOR_ATTACHMENT1',
+  },
+  {
+    id: 'position',
+    attachment: 'COLOR_ATTACHMENT2',
   },
 ];
 

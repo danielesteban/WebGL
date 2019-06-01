@@ -11,7 +11,7 @@ uniform mat4 camera;
 uniform mat4 transform;
 
 void main(void) {
-	fragNormal = normalize(transpose(inverse(mat3(transform))) * normal);
-	fragPosition = vec3(transform * vec4(position, 1.0));
-	gl_Position = camera * transform * vec4(position, 1.0);
+  fragNormal = normalize(transpose(inverse(mat3(transform))) * normal);
+  fragPosition = vec3(transform * vec4(position, 1.0));
+  gl_Position = camera * transform * vec4(position, 1.0);
 }

@@ -18,11 +18,13 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.bin$/,
+        loader: 'file-loader',
+        include: srcPath,
+      },
+      {
         test: /\.(vert|frag|glsl)$/,
-        loader:  [
-          'raw-loader',
-          'glslify-loader',
-        ],
+        use: 'webpack-glsl-loader',
         include: srcPath,
       },
     ],

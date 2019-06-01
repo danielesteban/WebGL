@@ -1,4 +1,5 @@
 import Camera from '@/camera';
+import Geometry from '@/geometry';
 import Input from '@/input';
 import Framebuffer from '@/framebuffer';
 
@@ -20,10 +21,21 @@ class Renderer {
     // This is just temporary while there's only single face triangles
     context.disable(context.CULL_FACE);
     context.getExtension('EXT_color_buffer_float');
-    context.clearColor(0.1, 0.1, 0.1, 1);
+    context.clearColor(0, 0, 0, 1);
     this.context = context;
     this.camera = new Camera();
     this.input = new Input({ mount });
+    this.frame = new Geometry({
+      context,
+      position: new Float32Array([
+        -1, 1, 0,
+        1, 1, 0,
+        1, -1, 0,
+        1, -1, 0,
+        -1, -1, 0,
+        -1, 1, 0,
+      ]),
+    });
     window.addEventListener('resize', this.onResize.bind(this));
     this.onResize();
     this.lastTick = window.performance.now();
@@ -37,7 +49,11 @@ class Renderer {
       context: GL,
       input,
       lastTick,
-      framebuffer,
+      framebuffer: {
+        attachments,
+        renderBuffer,
+        outputBuffer,
+      },
       scene,
     } = this;
     const time = window.performance.now();
@@ -46,51 +62,43 @@ class Renderer {
     if (scene) {
       camera.processInput({ input, delta, time });
       scene.animate({ delta, time });
-      GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer.renderBuffer);
-      GL.drawBuffers(
-        [
-          'COLOR_ATTACHMENT0',
-          'COLOR_ATTACHMENT1',
-          'COLOR_ATTACHMENT2',
-          'COLOR_ATTACHMENT3',
-        ].map(id => (
-          ~Framebuffer.textures.findIndex(({ attachment }) => (id === attachment)) ? (
-            GL[id]
-          ) : GL.NONE
-        ))
-      );
-      scene.render();
-      GL.bindFramebuffer(GL.FRAMEBUFFER, null);
-      GL.bindFramebuffer(GL.READ_FRAMEBUFFER, framebuffer.renderBuffer);
-      GL.bindFramebuffer(GL.DRAW_FRAMEBUFFER, framebuffer.outputBuffer);
 
+      // First multisampled pass
+      GL.bindFramebuffer(GL.FRAMEBUFFER, renderBuffer);
+      GL.drawBuffers(attachments);
+      this.render();
+      GL.bindFramebuffer(GL.FRAMEBUFFER, null);
+
+      // Blit first pass into textures
+      GL.bindFramebuffer(GL.READ_FRAMEBUFFER, renderBuffer);
+      GL.bindFramebuffer(GL.DRAW_FRAMEBUFFER, outputBuffer);
       Framebuffer.textures.forEach(({ id, attachment }) => {
         if (id === 'depth') {
-          return;
+          GL.readBuffer(GL.NONE);
+          GL.drawBuffers([GL.NONE]);
+        } else {
+          const buffer = GL[attachment];
+          GL.readBuffer(buffer);
+          GL.drawBuffers(
+            attachments.map(attachment => (
+              buffer === attachment ? buffer : GL.NONE
+            ))
+          );
         }
-        GL.readBuffer(GL[attachment]);
-        GL.drawBuffers(
-          [
-            'COLOR_ATTACHMENT0',
-            'COLOR_ATTACHMENT1',
-            'COLOR_ATTACHMENT2',
-            'COLOR_ATTACHMENT3',
-          ].map(id => (
-            id === attachment ? GL[attachment] : GL.NONE
-          ))
-        );
         GL.blitFramebuffer(
           0, 0,
           GL.drawingBufferWidth, GL.drawingBufferHeight,
           0, 0,
           GL.drawingBufferWidth, GL.drawingBufferHeight,
-          GL.COLOR_BUFFER_BIT,
-          GL.LINEAR
+          id === 'depth' ? GL.DEPTH_BUFFER_BIT : GL.COLOR_BUFFER_BIT,
+          id === 'depth' ? GL.NEAREST : GL.LINEAR
         );
       });
       GL.bindFramebuffer(GL.READ_FRAMEBUFFER, null);
       GL.bindFramebuffer(GL.DRAW_FRAMEBUFFER, null);
-      scene.postprocess(framebuffer);
+
+      // Post-Processing pass
+      this.postprocess();
     }
   }
 
@@ -110,6 +118,80 @@ class Renderer {
       framebuffer.dispose();
     }
     this.framebuffer = new Framebuffer({ context: GL });
+  }
+
+  postprocess() {
+    const {
+      camera,
+      context: GL,
+      frame,
+      framebuffer: {
+        colorTexture,
+        depthTexture,
+        normalTexture,
+        positionTexture,
+      },
+      scene: { postprocessing },
+    } = this;
+    GL.clear(GL.COLOR_BUFFER_BIT);
+    GL.useProgram(postprocessing.program);
+    GL.uniform3fv(postprocessing.uniforms.camera, camera.position);
+    // This bindings should be a in mapping to Framebuffer.textures
+    GL.activeTexture(GL.TEXTURE0);
+    GL.bindTexture(GL.TEXTURE_2D, colorTexture);
+    GL.uniform1i(postprocessing.uniforms.colorTexture, 0);
+    GL.activeTexture(GL.TEXTURE1);
+    GL.bindTexture(GL.TEXTURE_2D, depthTexture);
+    GL.uniform1i(postprocessing.uniforms.depthTexture, 1);
+    GL.activeTexture(GL.TEXTURE2);
+    GL.bindTexture(GL.TEXTURE_2D, normalTexture);
+    GL.uniform1i(postprocessing.uniforms.normalTexture, 2);
+    GL.activeTexture(GL.TEXTURE3);
+    GL.bindTexture(GL.TEXTURE_2D, positionTexture);
+    GL.uniform1i(postprocessing.uniforms.positionTexture, 3);
+    GL.bindVertexArray(frame.vao);
+    GL.drawArrays(GL.TRIANGLES, 0, frame.count);
+    GL.bindVertexArray(null);
+  }
+
+  render() {
+    const {
+      camera,
+      context: GL,
+      scene: { root },
+    } = this;
+    root
+      .reduce((materials, { material }) => {
+        if (materials.indexOf(material) === -1) {
+          materials.push(material);
+        }
+        return materials;
+      }, [])
+      .forEach((material) => {
+        GL.useProgram(material.program);
+        GL.uniformMatrix4fv(material.uniforms.camera, false, camera.transform);
+      });
+
+    GL.enable(GL.DEPTH_TEST);
+    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    root.forEach(({
+      albedo,
+      transform,
+      geometry,
+      material,
+    }) => {
+      GL.useProgram(material.program);
+      GL.uniformMatrix4fv(material.uniforms.transform, false, transform);
+      GL.uniform3fv(material.uniforms.albedo, albedo);
+      GL.bindVertexArray(geometry.vao);
+      if (geometry.ebo) {
+        GL.drawElements(GL.TRIANGLES, geometry.count, GL.UNSIGNED_SHORT, 0);
+      } else {
+        GL.drawArrays(GL.TRIANGLES, 0, geometry.count);
+      }
+      GL.bindVertexArray(null);
+    });
+    GL.disable(GL.DEPTH_TEST);
   }
 
   setScene(Scene) {
