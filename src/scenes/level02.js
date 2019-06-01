@@ -20,24 +20,24 @@ class Level02 extends Scene {
     const geometries = {
       ground: new Geometry({
         context,
-        position: [
+        position: new Float32Array([
           -10, 0, 10,
           10, 0, 10,
           10, 0, -10,
           -10, 0, -10,
-        ],
-        index: [
+        ]),
+        index: new Uint16Array([
           0, 1, 2,
           2, 3, 0,
-        ],
+        ]),
       }),
       triangle: new Geometry({
         context,
-        position: [
+        position: new Float32Array([
           -0.5, -0.5, 0,
           0.5, -0.5, 0,
           0, 0.5, 0,
-        ],
+        ]),
       }),
     };
 
@@ -61,14 +61,14 @@ class Level02 extends Scene {
     [
       // Ground
       {
-        albedo: [0.2, 0.3, 0.2],
+        albedo: new Float32Array([0.2, 0.3, 0.2]),
         geometry: geometries.ground,
         material: materials.grid,
       },
       // Triangle
       {
-        albedo: [0, 0.5, 0],
-        position: [0, 0.5, -2],
+        albedo: new Float32Array([0, 0.5, 0]),
+        position: new Float32Array([0, 0.5, -2]),
         geometry: geometries.triangle,
         material: materials.standard,
       },
