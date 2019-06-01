@@ -1,4 +1,4 @@
-import { mat4, vec3, quat } from 'gl-matrix';
+import { mat4 } from 'gl-matrix';
 
 class Mesh {
   constructor({
@@ -13,10 +13,10 @@ class Mesh {
     this.albedo = albedo;
     this.geometry = geometry;
     this.material = material;
+    this.position = position;
+    this.rotation = rotation;
+    this.scale = scale;
     this.transform = mat4.create();
-    this.position = vec3.fromValues(...position);
-    this.rotation = quat.fromValues(...rotation);
-    this.scale = vec3.fromValues(...scale);
     this.updateTransform();
     if (onAnimationFrame) {
       this.onAnimationFrame = onAnimationFrame.bind(this);
