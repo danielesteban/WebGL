@@ -6,10 +6,9 @@ const OBJFile = require('obj-file-parser');
 
 const input = `${process.argv[2]}.obj`;
 const output = path.join(__dirname, '..', 'src', 'models', `${process.argv[2]}.bin`);
-const buffer = fs.readFileSync(input);
 const {
   models,
-} = (new OBJFile(buffer.toString('utf8'))).parse();
+} = (new OBJFile(fs.readFileSync(input).toString('utf8'))).parse();
 const model = models.filter(({ faces, vertices }) => (
   !!faces.length && !!vertices.length
 ))[0];
@@ -22,7 +21,7 @@ const {
   vertexNormals,
 } = model;
 const normals = [];
-const indices = faces.reduce((indices, { vertices }, index) => {
+const indices = faces.reduce((indices, { vertices }) => {
   let face;
   if (vertices.length === 4) {
     face = [
@@ -36,9 +35,11 @@ const indices = faces.reduce((indices, { vertices }, index) => {
   } else {
     face = vertices.map(({ vertexIndex }) => (vertexIndex - 1));
   }
-  face.forEach((v) => {
-    normals[v] = vertexNormals[index];
-  });
+  if (vertexNormals) {
+    vertices.forEach(({ vertexIndex, vertexNormalIndex }) => {
+      normals[vertexIndex - 1] = vertexNormals[vertexNormalIndex - 1];
+    });
+  }
   indices.push(...face);
   return indices;
 }, []);
