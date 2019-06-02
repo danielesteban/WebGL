@@ -11,6 +11,7 @@ WebGL from scratch
  * [Yarn](https://yarnpkg.com/en/docs/install) >= 1.15
 
 ```bash
+git lfs install
 git clone https://github.com/danielesteban/WebGL.git
 cd WebGL
 yarn install
