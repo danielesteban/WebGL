@@ -125,30 +125,18 @@ class Renderer {
       camera,
       context: GL,
       frame,
-      framebuffer: {
-        colorTexture,
-        depthTexture,
-        normalTexture,
-        positionTexture,
-      },
+      framebuffer,
       scene: { postprocessing },
     } = this;
     GL.clear(GL.COLOR_BUFFER_BIT);
     GL.useProgram(postprocessing.program);
     GL.uniform3fv(postprocessing.uniforms.camera, camera.position);
-    // This bindings should be a in mapping to Framebuffer.textures
-    GL.activeTexture(GL.TEXTURE0);
-    GL.bindTexture(GL.TEXTURE_2D, colorTexture);
-    GL.uniform1i(postprocessing.uniforms.colorTexture, 0);
-    GL.activeTexture(GL.TEXTURE1);
-    GL.bindTexture(GL.TEXTURE_2D, depthTexture);
-    GL.uniform1i(postprocessing.uniforms.depthTexture, 1);
-    GL.activeTexture(GL.TEXTURE2);
-    GL.bindTexture(GL.TEXTURE_2D, normalTexture);
-    GL.uniform1i(postprocessing.uniforms.normalTexture, 2);
-    GL.activeTexture(GL.TEXTURE3);
-    GL.bindTexture(GL.TEXTURE_2D, positionTexture);
-    GL.uniform1i(postprocessing.uniforms.positionTexture, 3);
+    Framebuffer.textures.forEach(({ id }, index) => {
+      const texture = `${id}Texture`;
+      GL.activeTexture(GL[`TEXTURE${index}`]);
+      GL.bindTexture(GL.TEXTURE_2D, framebuffer[texture]);
+      GL.uniform1i(postprocessing.uniforms[texture], index);
+    });
     GL.bindVertexArray(frame.vao);
     GL.drawArrays(GL.TRIANGLES, 0, frame.count);
     GL.bindVertexArray(null);
