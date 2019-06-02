@@ -1,6 +1,9 @@
 WebGL from scratch
 ===
 
+[![dependencies Status](https://david-dm.org/danielesteban/WebGL/status.svg)](https://david-dm.org/danielesteban/WebGL)
+[![devDependencies Status](https://david-dm.org/danielesteban/WebGL/dev-status.svg)](https://david-dm.org/danielesteban/WebGL?type=dev)
+
 ### Dev environment
 
  * [MongoDB](https://www.mongodb.com/download-center/community) >= 4.0
