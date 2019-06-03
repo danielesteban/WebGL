@@ -126,11 +126,15 @@ class Renderer {
       context: GL,
       frame,
       framebuffer,
-      scene: { postprocessing },
+      scene: { lights, postprocessing },
     } = this;
     GL.clear(GL.COLOR_BUFFER_BIT);
     GL.useProgram(postprocessing.program);
     GL.uniform3fv(postprocessing.uniforms.camera, camera.position);
+    lights.forEach(({ position, color }, index) => {
+      GL.uniform3fv(postprocessing.uniforms[`lights[${index}].position`], position);
+      GL.uniform3fv(postprocessing.uniforms[`lights[${index}].color`], color);
+    });
     Framebuffer.textures.forEach(({ id }, index) => {
       const texture = `${id}Texture`;
       GL.activeTexture(GL[`TEXTURE${index}`]);
@@ -148,7 +152,13 @@ class Renderer {
       context: GL,
       scene: { root },
     } = this;
-    root
+
+    const meshes = root
+      .filter(({ position, radius }) => (
+        camera.isInFrustum({ position, radius })
+      ));
+
+    meshes
       .reduce((materials, { material }) => {
         if (materials.indexOf(material) === -1) {
           materials.push(material);
@@ -162,7 +172,7 @@ class Renderer {
 
     GL.enable(GL.DEPTH_TEST);
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-    root.forEach(({
+    meshes.forEach(({
       albedo,
       transform,
       geometry,
@@ -182,8 +192,15 @@ class Renderer {
     GL.disable(GL.DEPTH_TEST);
   }
 
-  setScene(Scene) {
-    this.scene = new Scene({ renderer: this });
+  setScene(Scene, args) {
+    const { scene } = this;
+    if (scene) {
+      scene.dispose();
+    }
+    this.scene = new Scene({
+      ...args,
+      renderer: this,
+    });
   }
 }
 

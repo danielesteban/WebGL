@@ -3,6 +3,7 @@ import Geometry from '@/geometry';
 import Material from '@/material';
 import Mesh from '@/mesh';
 import FetchModel from '@/model';
+import Physics from '@/physics';
 import Scene from '@/scene';
 import {
   GridVertex,
@@ -11,11 +12,13 @@ import {
   StandardFragment,
 } from '@/shaders';
 import Monkey from '@/models/monkey.bin';
+import Sphere from '@/models/sphere.bin';
 
 class Level01 extends Scene {
   constructor(args) {
     super(args);
     const {
+      physics,
       renderer: { context },
       root,
     } = this;
@@ -91,21 +94,20 @@ class Level01 extends Scene {
       }),
     };
 
-    function animateTriangle({ time }) {
-      const animation = Math.sin(time * 0.001);
-      quat.fromEuler(this.rotation, animation * 30, animation * 180, 0);
-      const scale = 1 + animation;
-      this.scale[0] = scale;
-      this.scale[2] = scale;
-      this.updateTransform();
-    }
-
     [
       // Ground
       {
         albedo: new Float32Array([0.2, 0.3, 0.2]),
         geometry: geometries.ground,
         material: materials.grid,
+        physics: {
+          mass: 0,
+          shape: {
+            type: 'box',
+            radius: [10, 1, 10],
+            offset: [0, -1, 0],
+          },
+        },
       },
       // Walls
       {
@@ -120,31 +122,18 @@ class Level01 extends Scene {
         geometry: geometries.wall,
         material: materials.standard,
       },
-      // Animated triangles
-      {
-        albedo: new Float32Array([0, 0.5, 0]),
-        position: new Float32Array([-1, 1.5, -2]),
-        geometry: geometries.triangle,
-        onAnimationFrame: animateTriangle,
-        material: materials.standard,
-      },
-      {
-        albedo: new Float32Array([0, 0, 1]),
-        position: new Float32Array([1, 1.5, -2]),
-        geometry: geometries.triangle,
-        onAnimationFrame: animateTriangle,
-        material: materials.standard,
-      },
     ].forEach((data) => {
       const mesh = new Mesh(data);
       root.push(mesh);
+      if (mesh.physics) {
+        physics.addBody(mesh);
+      }
     });
 
     FetchModel(Monkey)
       .then((model) => {
         const mesh = new Mesh({
-          albedo: new Float32Array([0.5, 0, 0]),
-          position: new Float32Array([0, 2, -4]),
+          position: new Float32Array([4, 2, -4]),
           geometry: new Geometry({
             ...model,
             context,
@@ -152,12 +141,41 @@ class Level01 extends Scene {
           material: materials.standard,
           onAnimationFrame: ({ time }) => {
             const animation = Math.sin(time * 0.001);
-            quat.fromEuler(mesh.rotation, animation * 30, animation * 180, 0);
+            quat.fromEuler(mesh.rotation, animation * 30, 0, 0);
             mesh.updateTransform();
           },
         });
         root.push(mesh);
       });
+
+    FetchModel(Sphere)
+      .then((model) => {
+        const mesh = new Mesh({
+          position: new Float32Array([0, 1, -4]),
+          geometry: new Geometry({
+            ...model,
+            context,
+          }),
+          material: materials.standard,
+          physics: {
+            mass: 0.1,
+            shape: {
+              type: 'sphere',
+              radius: 0.5,
+            },
+          },
+        });
+        root.push(mesh);
+        physics.addBody(mesh);
+        Physics.applyImpulse(mesh.physics.body, [-0.1, 0, 0]);
+      });
+
+    this.lights.forEach(({ position, color }, index) => {
+      position.set([
+        (index - 16) * 1.5, 1, -6 + (index % 2) * 2,
+      ]);
+      color.set([Math.random(), Math.random(), Math.random()]);
+    });
   }
 }
 

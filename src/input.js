@@ -24,7 +24,6 @@ class Input {
   }
 
   onPointerLockAttain(movements) {
-    // const { fullscreen } = this;
     this.isLocked = true;
     window.addEventListener('blur', this.onBlur, false);
     window.addEventListener('mousedown', this.onMouseDown, false);
@@ -33,12 +32,11 @@ class Input {
     window.addEventListener('keyup', this.onKeyboardUp, false);
     movements.on('data', this.onPointerMovement.bind(this));
     movements.on('close', this.onPointerLockClose.bind(this));
-    // fullscreen.request();
   }
 
   onPointerLockClose() {
     const {
-      // fullscreen,
+      fullscreen,
       keyboard,
       mouse,
     } = this;
@@ -48,9 +46,11 @@ class Input {
     window.removeEventListener('keydown', this.onKeyboardDown);
     window.removeEventListener('keyup', this.onKeyboardUp);
     this.isLocked = false;
-    // fullscreen.release();
     vec3.set(keyboard, 0, 0, 0);
     vec2.set(mouse, 0, 0);
+    if (fullscreen.target()) {
+      fullscreen.release();
+    }
   }
 
   onPointerMovement({ dx, dy }) {
@@ -89,7 +89,7 @@ class Input {
   }
 
   onKeyboardDown({ keyCode, repeat }) {
-    const { keyboard } = this;
+    const { fullscreen, keyboard } = this;
     if (repeat) return;
     switch (keyCode) {
       case 65:
@@ -109,6 +109,9 @@ class Input {
         break;
       case 87:
         keyboard[2] = 1;
+        break;
+      case 70:
+        fullscreen.request();
         break;
       default:
         break;

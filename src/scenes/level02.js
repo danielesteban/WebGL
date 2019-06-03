@@ -5,8 +5,6 @@ import Scene from '@/scene';
 import {
   GridVertex,
   GridFragment,
-  StandardVertex,
-  StandardFragment,
 } from '@/shaders';
 
 class Level02 extends Scene {
@@ -26,17 +24,15 @@ class Level02 extends Scene {
           10, 0, -10,
           -10, 0, -10,
         ]),
+        normal: new Float32Array([
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+        ]),
         index: new Uint16Array([
           0, 1, 2,
           2, 3, 0,
-        ]),
-      }),
-      triangle: new Geometry({
-        context,
-        position: new Float32Array([
-          -0.5, -0.5, 0,
-          0.5, -0.5, 0,
-          0, 0.5, 0,
         ]),
       }),
     };
@@ -49,13 +45,6 @@ class Level02 extends Scene {
           fragment: GridFragment,
         },
       }),
-      standard: new Material({
-        context,
-        shaders: {
-          vertex: StandardVertex,
-          fragment: StandardFragment,
-        },
-      }),
     };
 
     [
@@ -65,16 +54,16 @@ class Level02 extends Scene {
         geometry: geometries.ground,
         material: materials.grid,
       },
-      // Triangle
-      {
-        albedo: new Float32Array([0, 0.5, 0]),
-        position: new Float32Array([0, 0.5, -2]),
-        geometry: geometries.triangle,
-        material: materials.standard,
-      },
     ].forEach((data) => {
       const mesh = new Mesh(data);
       root.push(mesh);
+    });
+
+    this.lights.forEach(({ position, color }, index) => {
+      position.set([
+        (index - 16) * 1.5, 1, -6 + (index % 2) * 3,
+      ]);
+      color.set([Math.random(), Math.random(), Math.random()]);
     });
   }
 }

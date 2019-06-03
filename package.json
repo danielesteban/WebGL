@@ -23,9 +23,12 @@
     "webpack-glsl-loader": "^1.0.1"
   },
   "dependencies": {
+    "cannon": "^0.6.2",
     "fullscreen": "^1.1.1",
     "gl-matrix": "^3.0.0",
+    "history": "^4.9.0",
     "pako": "^1.0.10",
+    "path-to-regexp": "^3.0.0",
     "pointer-lock": "^0.0.4"
   }
 }

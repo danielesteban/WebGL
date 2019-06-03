@@ -1,15 +1,16 @@
 import Renderer from '@/renderer';
-/* eslint-disable no-unused-vars */
-import {
-  Level01,
-  Level02,
-} from '@/scenes';
-/* eslint-enable no-unused-vars */
+import Router from '@/router';
+import scenes from '@/scenes';
 
+// Setup renderer
 const mount = document.getElementById('mount');
 const renderer = new Renderer({
   mount,
 });
 
-renderer.setScene(Level01);
-// renderer.setScene(Level02);
+// Setup browser router
+// eslint-disable-next-line no-unused-vars
+const router = new Router({
+  scenes,
+  onUpdate: renderer.setScene.bind(renderer),
+});

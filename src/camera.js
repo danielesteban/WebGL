@@ -17,6 +17,11 @@ class Camera {
     this.up = vec3.create();
     this.worldUp = vec3.fromValues(0, 1, 0);
 
+    this.frustum = [...Array(6)].map(() => ({
+      normal: vec3.create(),
+      constant: 0,
+    }));
+
     this.projection = mat4.create();
     this.transform = mat4.create();
     this.view = mat4.create();
@@ -63,9 +68,40 @@ class Camera {
     }
   }
 
+  isInFrustum({ position, radius }) {
+    const { frustum } = this;
+    for (let i = 0; i < frustum.length; i += 1) {
+      const distance = vec3.dot(frustum[i].normal, position) + frustum[i].constant;
+      if (distance < -radius) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   setAspect(aspect) {
     mat4.perspective(this.projection, glMatrix.toRadian(60), aspect, 0.1, 1000);
     this.updateTransform();
+  }
+
+  updateFrustum() {
+    const {
+      frustum,
+      transform: m,
+    } = this;
+    const updatePlane = (index, x, y, z, w) => {
+      const plane = frustum[index];
+      vec3.set(plane.normal, x, y, z);
+      const inverseNormalLength = 1.0 / vec3.length(plane.normal);
+      vec3.scale(plane.normal, plane.normal, inverseNormalLength);
+      plane.constant = w * inverseNormalLength;
+    };
+    updatePlane(0, m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]);
+    updatePlane(1, m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]);
+    updatePlane(2, m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]);
+    updatePlane(3, m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]);
+    updatePlane(4, m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]);
+    updatePlane(5, m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]);
   }
 
   updateVectors() {
@@ -104,6 +140,7 @@ class Camera {
     vec3.add(lookAt, position, front);
     mat4.lookAt(view, position, lookAt, worldUp);
     mat4.multiply(transform, projection, view);
+    this.updateFrustum();
   }
 }
 

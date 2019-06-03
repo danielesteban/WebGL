@@ -1,3 +1,5 @@
+import { vec3 } from 'gl-matrix';
+
 class Geometry {
   constructor({
     context: GL,
@@ -42,6 +44,16 @@ class Geometry {
     this.context = GL;
     this.vao = vao;
     this.vbos = vbos;
+
+    const min = vec3.create();
+    const max = vec3.create();
+    const aux = vec3.create();
+    for (let i = 0; i < position.length; i += 3) {
+      vec3.set(aux, position[i], position[i + 1], position[i + 2]);
+      vec3.min(min, min, aux);
+      vec3.max(max, max, aux);
+    }
+    this.radius = vec3.distance(min, max) * 0.5;
   }
 
   dispose() {

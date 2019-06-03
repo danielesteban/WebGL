@@ -15,6 +15,9 @@ module.exports = {
       '@': srcPath,
     },
   },
+  devServer: {
+    historyApiFallback: true,
+  },
   module: {
     rules: [
       {
