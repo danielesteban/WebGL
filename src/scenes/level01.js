@@ -1,9 +1,8 @@
-import { quat } from 'gl-matrix';
+import { quat, vec3 } from 'gl-matrix';
 import Geometry from '@/geometry';
 import Material from '@/material';
 import Mesh from '@/mesh';
 import FetchModel from '@/model';
-import Physics from '@/physics';
 import Scene from '@/scene';
 import {
   GridVertex,
@@ -18,9 +17,7 @@ class Level01 extends Scene {
   constructor(args) {
     super(args);
     const {
-      physics,
       renderer: { context },
-      root,
     } = this;
 
     const geometries = {
@@ -42,6 +39,11 @@ class Level01 extends Scene {
           0, 1, 2,
           2, 3, 0,
         ]),
+        collision: {
+          type: 'box',
+          radius: [10, 1, 10],
+          offset: [0, -1, 0],
+        },
       }),
       wall: new Geometry({
         context,
@@ -102,11 +104,6 @@ class Level01 extends Scene {
         material: materials.grid,
         physics: {
           mass: 0,
-          shape: {
-            type: 'box',
-            radius: [10, 1, 10],
-            offset: [0, -1, 0],
-          },
         },
       },
       // Walls
@@ -122,52 +119,50 @@ class Level01 extends Scene {
         geometry: geometries.wall,
         material: materials.standard,
       },
-    ].forEach((data) => {
-      const mesh = new Mesh(data);
-      root.push(mesh);
-      if (mesh.physics) {
-        physics.addBody(mesh);
-      }
-    });
+    ].forEach(data => (
+      this.add(new Mesh(data))
+    ));
 
     FetchModel(Monkey)
-      .then((model) => {
-        const mesh = new Mesh({
+      .then(model => (
+        this.add(new Mesh({
           position: new Float32Array([4, 2, -4]),
           geometry: new Geometry({
             ...model,
             context,
           }),
           material: materials.standard,
-          onAnimationFrame: ({ time }) => {
+          onAnimationFrame({ time }) {
             const animation = Math.sin(time * 0.001);
-            quat.fromEuler(mesh.rotation, animation * 30, 0, 0);
-            mesh.updateTransform();
+            quat.fromEuler(this.rotation, animation * 30, 0, 0);
+            this.updateTransform();
           },
-        });
-        root.push(mesh);
-      });
+        }))
+      ));
 
     FetchModel(Sphere)
       .then((model) => {
-        const mesh = new Mesh({
-          position: new Float32Array([0, 1, -4]),
-          geometry: new Geometry({
-            ...model,
-            context,
-          }),
-          material: materials.standard,
-          physics: {
-            mass: 0.1,
-            shape: {
-              type: 'sphere',
-              radius: 0.5,
-            },
+        const geometry = new Geometry({
+          ...model,
+          collision: {
+            type: 'sphere',
+            radius: 0.5,
           },
+          context,
         });
-        root.push(mesh);
-        physics.addBody(mesh);
-        Physics.applyImpulse(mesh.physics.body, [-0.1, 0, 0]);
+        this.sphere = 0;
+        this.spheres = [...Array(32)].map(() => {
+          const mesh = new Mesh({
+            position: new Float32Array([Math.random() * 20 - 10, 1, Math.random() * 20 - 10]),
+            geometry,
+            material: materials.standard,
+            physics: {
+              mass: 0.5,
+            },
+          });
+          this.add(mesh);
+          return mesh;
+        });
       });
 
     this.lights.forEach(({ position, color }, index) => {
@@ -176,6 +171,31 @@ class Level01 extends Scene {
       ]);
       color.set([Math.random(), Math.random(), Math.random()]);
     });
+  }
+
+  animate(args) {
+    super.animate(args);
+    const {
+      renderer: { camera, input },
+      sphere,
+      spheres,
+    } = this;
+    if (spheres && input.buttons.primaryDown) {
+      const { albedo, physics: { body } } = spheres[sphere];
+      const aux = vec3.create();
+      vec3.scaleAndAdd(aux, camera.position, camera.front, 0.5);
+      vec3.set(albedo, Math.random(), Math.random(), Math.random());
+      body.position.set(
+        aux[0],
+        aux[1],
+        aux[2]
+      );
+      body.quaternion.set(0, 0, 0, 1);
+      body.velocity.set(...vec3.scale(aux, camera.front, 10));
+      body.angularVelocity.set(0, 0, 0);
+      body.sleepState = 0;
+      this.sphere = (sphere + 1) % spheres.length;
+    }
   }
 }
 

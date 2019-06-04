@@ -100,6 +100,9 @@ class Renderer {
       // Post-Processing pass
       this.postprocess();
     }
+    ['primaryDown', 'secondaryDown', 'primaryUp', 'secondaryUp'].forEach((button) => {
+      input.buttons[button] = false;
+    });
   }
 
   onResize() {

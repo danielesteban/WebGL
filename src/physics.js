@@ -1,12 +1,17 @@
 import CANNON from 'cannon';
 
 class Physics {
-  static applyImpulse(body, impulse) {
-    body.applyImpulse(new CANNON.Vec3(
-      impulse[0],
-      impulse[1],
-      impulse[2]
-    ), new CANNON.Vec3(0, 0, 0));
+  static getShape({ type, radius }) {
+    switch (type) {
+      case 'box':
+        return new CANNON.Box(
+          new CANNON.Vec3(radius[0], radius[1], radius[2])
+        );
+      default:
+        return new CANNON.Sphere(
+          radius
+        );
+    }
   }
 
   constructor() {
@@ -15,6 +20,7 @@ class Physics {
   }
 
   addBody({
+    geometry,
     physics,
     position,
     rotation,
@@ -24,26 +30,13 @@ class Physics {
       mass: physics.mass,
       type: physics.mass <= 0.0 ? CANNON.Body.STATIC : CANNON.Body.DYNAMIC,
     });
-    let shape;
-    switch (physics.shape.type) {
-      case 'box':
-        shape = new CANNON.Box(
-          new CANNON.Vec3(physics.shape.radius[0], physics.shape.radius[1], physics.shape.radius[2])
-        );
-        break;
-      default:
-        shape = new CANNON.Sphere(
-          physics.shape.radius
-        );
-        break;
-    }
     body.addShape(
-      shape,
-      physics.shape.offset ? (
+      geometry.collision.shape,
+      geometry.collision.offset ? (
         new CANNON.Vec3(
-          physics.shape.offset[0],
-          physics.shape.offset[1],
-          physics.shape.offset[2]
+          geometry.collision.offset[0],
+          geometry.collision.offset[1],
+          geometry.collision.offset[2]
         )
       ) : undefined
     );
@@ -55,7 +48,7 @@ class Physics {
 
   step(delta) {
     const { world } = this;
-    world.step(1 / 60, delta);
+    world.step(1 / 60, delta, 3);
   }
 }
 

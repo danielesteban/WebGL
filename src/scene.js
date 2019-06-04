@@ -38,6 +38,14 @@ class Scene {
     });
   }
 
+  add(mesh) {
+    const { physics, root } = this;
+    root.push(mesh);
+    if (mesh.physics) {
+      physics.addBody(mesh);
+    }
+  }
+
   animate({ delta, time }) {
     const { physics, root } = this;
     physics.step(delta * 0.001);

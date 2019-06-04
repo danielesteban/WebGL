@@ -1,4 +1,5 @@
 import { vec3 } from 'gl-matrix';
+import Physics from '@/physics';
 
 class Geometry {
   constructor({
@@ -8,6 +9,7 @@ class Geometry {
     normal,
     color,
     uv,
+    collision,
   }) {
     const { attributes } = Geometry;
     const vao = GL.createVertexArray();
@@ -44,6 +46,13 @@ class Geometry {
     this.context = GL;
     this.vao = vao;
     this.vbos = vbos;
+
+    if (collision) {
+      this.collision = {
+        shape: Physics.getShape(collision),
+        offset: collision.offset,
+      };
+    }
 
     const min = vec3.create();
     const max = vec3.create();
