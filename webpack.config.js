@@ -67,7 +67,7 @@ module.exports = {
     }),
     new webpack.SourceMapDevToolPlugin({
       test: /\.js$/,
-      filename: '[name].[hash].js.map',
+      filename: '[hash].js.map',
     }),
   ],
 };
