@@ -12,17 +12,26 @@ class Level02 extends Scene {
     super(args);
     const {
       renderer: { context },
-      root,
     } = this;
+
+    const materials = {
+      grid: new Material({
+        context,
+        shaders: {
+          vertex: GridVertex,
+          fragment: GridFragment,
+        },
+      }),
+    };
 
     const geometries = {
       ground: new Geometry({
         context,
         position: new Float32Array([
-          -10, 0, 10,
-          10, 0, 10,
-          10, 0, -10,
-          -10, 0, -10,
+          -20, 0, 20,
+          20, 0, 20,
+          20, 0, -20,
+          -20, 0, -20,
         ]),
         normal: new Float32Array([
           0, 1, 0,
@@ -37,16 +46,6 @@ class Level02 extends Scene {
       }),
     };
 
-    const materials = {
-      grid: new Material({
-        context,
-        shaders: {
-          vertex: GridVertex,
-          fragment: GridFragment,
-        },
-      }),
-    };
-
     [
       // Ground
       {
@@ -54,14 +53,13 @@ class Level02 extends Scene {
         geometry: geometries.ground,
         material: materials.grid,
       },
-    ].forEach((data) => {
-      const mesh = new Mesh(data);
-      root.push(mesh);
-    });
+    ].forEach(data => (
+      this.add(new Mesh(data))
+    ));
 
     this.lights.forEach(({ position, color }, index) => {
       position.set([
-        (index - 16) * 1.5, 1, -6 + (index % 2) * 3,
+        (index - 8) * 1.5, 1, -6 + (index % 2) * 3,
       ]);
       color.set([Math.random(), Math.random(), Math.random()]);
     });

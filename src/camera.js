@@ -15,6 +15,8 @@ class Camera {
     this.front = vec3.create();
     this.right = vec3.create();
     this.up = vec3.create();
+    this.worldFront = vec3.create();
+    this.worldRight = vec3.create();
     this.worldUp = vec3.fromValues(0, 1, 0);
 
     this.frustum = [...Array(6)].map(() => ({
@@ -52,26 +54,26 @@ class Camera {
 
     if (keyboard[0] !== 0 || keyboard[1] !== 0 || keyboard[2] !== 0) {
       const {
-        front,
         lookAt,
         position,
-        right,
-        up,
+        worldFront,
+        worldRight,
+        worldUp,
       } = this;
       vec3.set(lookAt, 0, 0, 0);
-      vec3.scaleAndAdd(lookAt, lookAt, right, keyboard[0]);
-      vec3.scaleAndAdd(lookAt, lookAt, up, keyboard[1]);
-      vec3.scaleAndAdd(lookAt, lookAt, front, keyboard[2]);
+      vec3.scaleAndAdd(lookAt, lookAt, worldRight, keyboard[0]);
+      vec3.scaleAndAdd(lookAt, lookAt, worldUp, keyboard[1]);
+      vec3.scaleAndAdd(lookAt, lookAt, worldFront, keyboard[2]);
       vec3.normalize(lookAt, lookAt, lookAt);
       vec3.scaleAndAdd(position, position, lookAt, delta * 0.005);
       this.updateTransform();
     }
   }
 
-  isInFrustum({ position, radius }) {
+  isInFrustum({ origin, radius }) {
     const { frustum } = this;
     for (let i = 0; i < frustum.length; i += 1) {
-      const distance = vec3.dot(frustum[i].normal, position) + frustum[i].constant;
+      const distance = vec3.dot(frustum[i].normal, origin) + frustum[i].constant;
       if (distance < -radius) {
         return false;
       }
@@ -111,19 +113,30 @@ class Camera {
       up,
       yaw,
       pitch,
+      worldFront,
+      worldRight,
       worldUp,
+      lookAt,
     } = this;
+
     vec3.set(
-      front,
+      lookAt,
       Math.cos(yaw) * Math.cos(pitch),
       Math.sin(pitch),
       Math.sin(yaw) * Math.cos(pitch)
     );
-    vec3.normalize(front, front);
+
+    vec3.normalize(front, lookAt);
     vec3.cross(right, front, worldUp);
     vec3.normalize(right, right);
     vec3.cross(up, right, front);
     vec3.normalize(up, up);
+
+    lookAt[1] = 0;
+    vec3.normalize(worldFront, lookAt);
+    vec3.cross(worldRight, worldFront, worldUp);
+    vec3.normalize(worldRight, worldRight);
+
     this.updateTransform();
   }
 

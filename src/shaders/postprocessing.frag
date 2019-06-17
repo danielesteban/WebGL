@@ -13,26 +13,33 @@ uniform sampler2D normalTexture;
 @import ./lighting;
 @import ./sobel;
 
+const vec3 background = vec3(0.02, 0.06, 0.16);
+
 void main(void) {
-  vec2 resolution = vec2(textureSize(colorTexture, 0));
+  vec3 color = background;
+  vec3 normal = texture(normalTexture, fragUV).rgb;
 
-  vec3 color = texture(colorTexture, fragUV).rgb;
-  vec3 normal = normalize(texture(normalTexture, fragUV).rgb);
-  vec3 position = texture(positionTexture, fragUV).rgb;
-  float distance = length(camera - position);
+  if (
+    normal.x != 0.0
+    || normal.y != 0.0
+    || normal.z != 0.0
+  ) {
+    vec2 resolution = vec2(textureSize(colorTexture, 0));
+    vec3 position = texture(positionTexture, fragUV).rgb;
 
-  // lighting
-  color = Lighting(color, normal, position);
-
-  // edge detection
-  float edge = Sobel(depthTexture, resolution) * distance;
-  if (edge >= 0.05) {
-    color = mix(color, vec3(0), 0.5);
+    // lighting
+    color = Lighting(texture(colorTexture, fragUV).rgb, normalize(normal), position) * 2.0;
+    // fog
+    color = mix(color, background, length(position) / 16.0);
+    // edge detection
+    if (Sobel(depthTexture, resolution) >= 1.5) {
+      color = mix(background, color, 0.3);
+    }
   }
 
   // vignette
   float vignette = smoothstep(0.75, 0.5, length(fragUV - vec2(0.5)));
-  color = mix(color, color * vignette, 0.5);
+  color = mix(color, color * vignette, 0.3);
 
   outColor = vec4(color, 1.0);
 }

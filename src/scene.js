@@ -1,5 +1,4 @@
 import Material from '@/material';
-import Physics from '@/physics';
 import {
   PostprocessingVertex,
   PostprocessingFragment,
@@ -7,13 +6,12 @@ import {
 
 class Scene {
   constructor({ renderer, postprocessing }) {
-    this.renderer = renderer;
-    this.root = [];
-    this.lights = [...Array(32)].map(() => ({
+    this.geometries = new Map();
+    this.lights = [...Array(16)].map(() => ({
       position: new Float32Array([0, 0, 0]),
       color: new Float32Array([0, 0, 0]),
     }));
-    this.physics = new Physics();
+    this.materials = new Map();
     this.postprocessing = new Material({
       context: renderer.context,
       shaders: {
@@ -36,40 +34,55 @@ class Scene {
         }, []),
       ],
     });
+    this.renderer = renderer;
+    this.root = [];
   }
 
   add(mesh) {
-    const { physics, root } = this;
+    const {
+      geometries,
+      materials,
+      renderer: { physics },
+      root,
+    } = this;
     root.push(mesh);
+    if (!geometries.has(mesh.geometry.vao)) {
+      geometries.set(mesh.geometry.vao, mesh.geometry);
+    }
+    if (!materials.has(mesh.material.program)) {
+      materials.set(mesh.material.program, mesh.material);
+    }
     if (mesh.physics) {
+      if (mesh.geometry.collision.then) {
+        mesh.physics.body = mesh.geometry.collision.then(() => (
+          physics.addBody(mesh)
+        ));
+        return;
+      }
       physics.addBody(mesh);
     }
   }
 
   animate({ delta, time }) {
-    const { physics, root } = this;
-    physics.step(delta * 0.001);
+    const { root } = this;
     root.forEach((mesh) => {
       if (mesh.onAnimationFrame) {
         mesh.onAnimationFrame({ delta, time });
       }
-      const {
-        physics,
-        position,
-        rotation,
-      } = mesh;
-      if (physics && physics.body && physics.body.type === 1 && physics.body.sleepState === 0) {
-        const { position: p, quaternion: r } = physics.body;
-        position.set(p.toArray());
-        rotation.set(r.toArray());
-        mesh.updateTransform();
-      }
     });
   }
 
-  // eslint-disable-next-line class-methods-use-this
   dispose() {
-    // TODO: Dispose the allocated memory/buffers
+    const {
+      geometries,
+      materials,
+    } = this;
+    geometries.forEach(geometry => (
+      geometry.dispose()
+    ));
+    materials.forEach(material => (
+      material.dispose()
+    ));
   }
 }
 

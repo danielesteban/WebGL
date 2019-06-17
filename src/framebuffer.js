@@ -11,13 +11,13 @@ class Framebuffer {
     textures.forEach(({
       id,
       attachment,
-      internalFormat = 'RGBA32F',
+      internalFormat = 'RGBA16F',
     }) => {
       this[`${id}Buffer`] = GL.createRenderbuffer();
       GL.bindRenderbuffer(GL.RENDERBUFFER, this[`${id}Buffer`]);
       GL.renderbufferStorageMultisample(
         GL.RENDERBUFFER,
-        GL.getParameter(GL.MAX_SAMPLES),
+        Math.min(GL.getParameter(GL.MAX_SAMPLES), 2),
         GL[internalFormat],
         width,
         height
@@ -37,7 +37,7 @@ class Framebuffer {
     textures.forEach(({
       id,
       attachment,
-      internalFormat = 'RGBA32F',
+      internalFormat = 'RGBA16F',
       format = 'RGBA',
       type = 'FLOAT',
     }) => {

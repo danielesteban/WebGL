@@ -1,5 +1,6 @@
 import { quat, vec3 } from 'gl-matrix';
 import Geometry from '@/geometry';
+import { Cube, Heightfield } from '@/geometries';
 import Material from '@/material';
 import Mesh from '@/mesh';
 import FetchModel from '@/model';
@@ -16,68 +17,12 @@ import Sphere from '@/models/sphere.bin';
 class Level01 extends Scene {
   constructor(args) {
     super(args);
+    const { renderer } = this;
     const {
-      renderer: { context },
-    } = this;
-
-    const geometries = {
-      ground: new Geometry({
-        context,
-        position: new Float32Array([
-          -10, 0, 10,
-          10, 0, 10,
-          10, 0, -10,
-          -10, 0, -10,
-        ]),
-        normal: new Float32Array([
-          0, 1, 0,
-          0, 1, 0,
-          0, 1, 0,
-          0, 1, 0,
-        ]),
-        index: new Uint16Array([
-          0, 1, 2,
-          2, 3, 0,
-        ]),
-        collision: {
-          type: 'box',
-          radius: [10, 1, 10],
-          offset: [0, -1, 0],
-        },
-      }),
-      wall: new Geometry({
-        context,
-        position: new Float32Array([
-          -4.5, 1, 0,
-          5, 1, 0,
-          5, -1, 0,
-          -4.5, -1, 0,
-        ]),
-        normal: new Float32Array([
-          0, 0, 1,
-          0, 0, 1,
-          0, 0, 1,
-          0, 0, 1,
-        ]),
-        index: new Uint16Array([
-          0, 1, 2,
-          2, 3, 0,
-        ]),
-      }),
-      triangle: new Geometry({
-        context,
-        position: new Float32Array([
-          -0.5, -0.5, 0,
-          0.5, -0.5, 0,
-          0, 0.5, 0,
-        ]),
-        normal: new Float32Array([
-          0, 0, 1,
-          0, 0, 1,
-          0, 0, 1,
-        ]),
-      }),
-    };
+      camera,
+      context,
+      physics,
+    } = renderer;
 
     const materials = {
       grid: new Material({
@@ -96,46 +41,174 @@ class Level01 extends Scene {
       }),
     };
 
+    const geometries = {
+      ground: new Heightfield({
+        renderer,
+        map: [...Array(97)].map((v, x) => [...Array(97)].map((v, y) => {
+          const d = Math.sqrt(((x - 48) ** 2) + ((y - 48) ** 2));
+          if (d >= 32) {
+            return 4;
+          }
+          if (d >= 24) {
+            return 4 + Math.random() * 0.5;
+          }
+          if (d <= 12) {
+            return 2 - Math.random() * 0.5;
+          }
+          return d * 0.2 - Math.random() * 0.2;
+        })),
+      }),
+      light: new Cube({
+        renderer,
+        width: 0.15,
+        height: 0.05,
+        depth: 0.15,
+      }),
+      wall: new Cube({
+        renderer,
+        width: 20,
+        height: 6,
+        depth: 0.5,
+      }),
+      hinge: new Cube({
+        renderer,
+        width: 1,
+        height: 0.2,
+        depth: 0.2,
+      }),
+      target: new Cube({
+        renderer,
+        width: 1,
+        height: 2,
+        depth: 0.1,
+      }),
+      box: new Cube({
+        renderer,
+        width: 0.75,
+        height: 0.75,
+        depth: 0.75,
+      }),
+    };
+
     [
       // Ground
       {
-        albedo: new Float32Array([0.2, 0.3, 0.2]),
+        albedo: new Float32Array([0.6, 0.6, 0.6]),
+        position: new Float32Array([
+          96 * 0.3 * -0.5,
+          -4,
+          96 * 0.3 * 0.5,
+        ]),
+        rotation: quat.fromEuler(quat.create(), -90, 0, 0),
         geometry: geometries.ground,
         material: materials.grid,
-        physics: {
-          mass: 0,
-        },
+        physics: { mass: 0 },
       },
-      // Walls
+      // Wall
       {
-        albedo: new Float32Array([0, 0.5, 0]),
-        position: new Float32Array([-5, 1.5, -10]),
+        albedo: new Float32Array([0.8, 0.8, 0.8]),
+        position: new Float32Array([0, 4, -12]),
         geometry: geometries.wall,
         material: materials.standard,
-      },
-      {
-        albedo: new Float32Array([0, 0, 1]),
-        position: new Float32Array([5, 1.5, -10]),
-        geometry: geometries.wall,
-        material: materials.standard,
+        physics: { mass: 0 },
       },
     ].forEach(data => (
       this.add(new Mesh(data))
     ));
 
+    [
+      // Targets
+      {
+        position: new Float32Array([-3, 2, 0]),
+        geometry: geometries.target,
+        material: materials.standard,
+      },
+      {
+        position: new Float32Array([3, 2, 0]),
+        geometry: geometries.target,
+        material: materials.standard,
+      },
+    ].forEach((data) => {
+      const mesh = new Mesh({
+        ...data,
+        albedo: new Float32Array([0.8, 0.8, 0.8]),
+        physics: { mass: 1 },
+      });
+      this.add(mesh);
+      const hinge = new Mesh({
+        ...data,
+        albedo: new Float32Array([0.3, 0.3, 0.3]),
+        geometry: geometries.hinge,
+        position: new Float32Array([
+          data.position[0],
+          data.position[1] + 1.15,
+          data.position[2],
+        ]),
+        physics: { mass: 0 },
+      });
+      this.add(hinge);
+      Promise.all([
+        hinge.physics.body,
+        mesh.physics.body,
+      ])
+        .then(() => (
+          physics.addConstraint({
+            type: 'hinge',
+            bodyA: hinge.physics.body,
+            bodyB: mesh.physics.body,
+            pivotB: [0, 1.15, 0],
+          })
+        ));
+    });
+
+    for (let i = 0; i < 8; i += 1) {
+      const box = new Mesh({
+        albedo: new Float32Array([
+          Math.random(),
+          Math.random(),
+          Math.random(),
+        ]),
+        position: new Float32Array([
+          Math.random() * 16 - 8,
+          Math.random() * 6 + 8,
+          Math.random() * 16 - 8,
+        ]),
+        geometry: geometries.box,
+        material: materials.standard,
+        physics: { mass: 1 },
+      });
+      this.add(box);
+    }
+
     FetchModel(Monkey)
       .then(model => (
         this.add(new Mesh({
-          position: new Float32Array([4, 2, -4]),
+          albedo: new Float32Array([0.6, 0.6, 0.6]),
+          position: new Float32Array([0, 2, 0]),
           geometry: new Geometry({
             ...model,
-            context,
+            renderer,
+            collision: {
+              type: 'trimesh',
+              ...model,
+            },
           }),
           material: materials.standard,
+          physics: {
+            mass: 0,
+            kinematic: true,
+          },
           onAnimationFrame({ time }) {
             const animation = Math.sin(time * 0.001);
-            quat.fromEuler(this.rotation, animation * 30, 0, 0);
+            quat.fromEuler(this.rotation, 0, animation * 25, 0);
             this.updateTransform();
+            if (this.physics.body.then) {
+              return;
+            }
+            physics.resetBody({
+              body: this.physics.body,
+              rotation: [...this.rotation],
+            });
           },
         }))
       ));
@@ -144,58 +217,108 @@ class Level01 extends Scene {
       .then((model) => {
         const geometry = new Geometry({
           ...model,
+          renderer,
           collision: {
             type: 'sphere',
-            radius: 0.5,
+            radius: 0.25,
           },
-          context,
         });
         this.sphere = 0;
-        this.spheres = [...Array(32)].map(() => {
+        this.spheres = [...Array(24)].map(() => {
           const mesh = new Mesh({
-            position: new Float32Array([Math.random() * 20 - 10, 1, Math.random() * 20 - 10]),
+            albedo: new Float32Array([Math.random(), Math.random(), Math.random()]),
+            position: new Float32Array([
+              Math.random() * 16 - 8,
+              3 + Math.random() * 8,
+              Math.random() * 16 - 8,
+            ]),
+            scale: new Float32Array([0.5, 0.5, 0.5]),
             geometry,
             material: materials.standard,
-            physics: {
-              mass: 0.5,
-            },
+            physics: { mass: 0.5 },
           });
           this.add(mesh);
           return mesh;
         });
       });
 
+    this.lightsAnimation = 0;
     this.lights.forEach(({ position, color }, index) => {
-      position.set([
-        (index - 16) * 1.5, 1, -6 + (index % 2) * 2,
-      ]);
-      color.set([Math.random(), Math.random(), Math.random()]);
+      position[1] = 2.5;
+      vec3.set(color, Math.random(), Math.random(), Math.random());
+      vec3.normalize(color, color);
+      const mesh = new Mesh({
+        albedo: vec3.scale(vec3.create(), color, 2.0),
+        geometry: geometries.light,
+        material: materials.standard,
+        // physics: { mass: 0, kinematic: true },
+      });
+      this.add(mesh);
+      this.lights[index].mesh = mesh;
     });
+
+    camera.position[1] = 1.5;
+    camera.position[2] = 12;
+    camera.updateTransform();
   }
 
   animate(args) {
     super.animate(args);
     const {
-      renderer: { camera, input },
+      renderer: { camera, input, physics },
       sphere,
       spheres,
     } = this;
     if (spheres && input.buttons.primaryDown) {
       const { albedo, physics: { body } } = spheres[sphere];
+      vec3.set(albedo, Math.random(), Math.random(), Math.random());
       const aux = vec3.create();
       vec3.scaleAndAdd(aux, camera.position, camera.front, 0.5);
-      vec3.set(albedo, Math.random(), Math.random(), Math.random());
-      body.position.set(
-        aux[0],
-        aux[1],
-        aux[2]
-      );
-      body.quaternion.set(0, 0, 0, 1);
-      body.velocity.set(...vec3.scale(aux, camera.front, 10));
-      body.angularVelocity.set(0, 0, 0);
-      body.sleepState = 0;
+      physics.resetBody({
+        body,
+        position: [...aux],
+        rotation: [0, 0, 0, 1],
+        velocity: [...vec3.scale(aux, camera.front, 16)],
+        angularVelocity: [0, 0, 0],
+      });
       this.sphere = (sphere + 1) % spheres.length;
     }
+
+    const step = Math.PI * 2 / this.lights.length;
+    this.lightsAnimation += args.delta * 0.0002;
+    let a = (this.lightsAnimation * 0.25) % 1;
+    a = a >= 0.5 ? 1 - a : a;
+    const distance = 10 - a * 6;
+    this.lights.forEach(({ mesh, position }, index) => {
+      const angle = step * index - this.lightsAnimation;
+      position[0] = Math.cos(angle) * distance;
+      position[1] = Math.sin(distance + (index % 2)) + 2;
+      position[2] = Math.sin(angle) * distance;
+      vec3.copy(mesh.position, position);
+      mesh.position[1] -= 0.1;
+      mesh.updateTransform();
+      // physics.resetBody({
+      //   body: mesh.physics.body,
+      //   position: [...this.position],
+      // });
+    });
+
+    // const hit = physics.getClosestBody({
+    //   origin: [
+    //     camera.position[0],
+    //     camera.position[1] + 10,
+    //     camera.position[2],
+    //   ],
+    //   direction: [0, -20, 0],
+    // });
+    // if (hit) {
+    //   const step = args.delta * 0.0025;
+    //   camera.position[1] += Math.min(Math.max(
+    //     (hit.hitPointWorld.y + 1.5) - camera.position[1],
+    //     -step
+    //   ), step);
+    //   camera.updateTransform();
+    // }
   }
 }
 

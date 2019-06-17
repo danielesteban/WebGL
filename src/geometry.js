@@ -1,9 +1,11 @@
 import { vec3 } from 'gl-matrix';
-import Physics from '@/physics';
 
 class Geometry {
   constructor({
-    context: GL,
+    renderer: {
+      context: GL,
+      physics,
+    },
     index,
     position,
     normal,
@@ -48,10 +50,14 @@ class Geometry {
     this.vbos = vbos;
 
     if (collision) {
-      this.collision = {
-        shape: Physics.getShape(collision),
-        offset: collision.offset,
-      };
+      this.collision = physics
+        .getShape(collision)
+        .then(({ id }) => {
+          this.collision = {
+            shape: id,
+            offset: collision.offset,
+          };
+        });
     }
 
     const min = vec3.create();
@@ -62,6 +68,8 @@ class Geometry {
       vec3.min(min, min, aux);
       vec3.max(max, max, aux);
     }
+    vec3.sub(aux, max, min);
+    this.origin = vec3.scaleAndAdd(vec3.create(), min, aux, 0.5);
     this.radius = vec3.distance(min, max) * 0.5;
   }
 

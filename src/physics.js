@@ -1,54 +1,132 @@
-import CANNON from 'cannon';
+import Worker from '@/physics.worker';
+import { quat, vec3 } from 'gl-matrix';
 
 class Physics {
-  static getShape({ type, radius }) {
-    switch (type) {
-      case 'box':
-        return new CANNON.Box(
-          new CANNON.Vec3(radius[0], radius[1], radius[2])
-        );
-      default:
-        return new CANNON.Sphere(
-          radius
-        );
+  constructor() {
+    this.bodies = [];
+    this.buffer = new Float32Array();
+    this.promises = {};
+    this.requestId = 1;
+    this.worker = new Worker();
+    this.worker.addEventListener('message', this.onMessage.bind(this));
+    this.step();
+  }
+
+  addBody(mesh) {
+    const { bodies } = this;
+    const promise = this
+      .request({
+        action: 'addBody',
+        payload: {
+          physics: {
+            ...mesh.physics,
+            body: undefined,
+            collision: mesh.geometry.collision,
+          },
+          position: mesh.position,
+          rotation: mesh.rotation,
+        },
+      })
+      .then(({ id }) => {
+        mesh.physics.body = id;
+      });
+    if (mesh.physics.mass !== 0.0 && !mesh.physics.kinematic) {
+      bodies.push(mesh);
+      this.bufferNeedsUpdate = true;
+    }
+    mesh.physics.body = promise;
+    return promise;
+  }
+
+  addConstraint(payload) {
+    return this.request({
+      action: 'addConstraint',
+      payload,
+    });
+  }
+
+  getShape(payload) {
+    return this.request({
+      action: 'getShape',
+      payload,
+    });
+  }
+
+  reset() {
+    this.bodies = [];
+    this.bufferNeedsUpdate = true;
+    return this.request({
+      action: 'reset',
+    });
+  }
+
+  resetBody(payload) {
+    return this.request({
+      action: 'resetBody',
+      payload,
+    });
+  }
+
+  step() {
+    if (this.bufferNeedsUpdate) {
+      delete this.bufferNeedsUpdate;
+      this.buffer = new Float32Array(this.bodies.length * 7);
+    }
+    const { buffer } = this;
+    const time = window.performance.now();
+    return this.request({
+      action: 'step',
+      buffers: [buffer.buffer],
+      payload: {
+        buffer,
+      },
+    })
+      .then(({ buffer }) => {
+        if (!this.bufferNeedsUpdate) {
+          this.buffer = buffer;
+          this.bodies.forEach((mesh, index) => {
+            const o = index * 7;
+            vec3.set(
+              mesh.position,
+              this.buffer[o],
+              this.buffer[o + 1],
+              this.buffer[o + 2]
+            );
+            quat.set(
+              mesh.rotation,
+              this.buffer[o + 3],
+              this.buffer[o + 4],
+              this.buffer[o + 5],
+              this.buffer[o + 6]
+            );
+            mesh.updateTransform();
+          });
+        }
+        const delta = window.performance.now() - time;
+        setTimeout(() => this.step(), Math.max(0, ((1 / 60) * 1000) - delta));
+      });
+  }
+
+  onMessage({ data: { id, response } }) {
+    const { promises } = this;
+    const { [id]: promise } = promises;
+    if (promise) {
+      delete promises[id];
+      promise(response);
     }
   }
 
-  constructor() {
-    this.world = new CANNON.World();
-    this.world.gravity.set(0, -9.8, 0);
-  }
-
-  addBody({
-    geometry,
-    physics,
-    position,
-    rotation,
-  }) {
-    const { world } = this;
-    const body = new CANNON.Body({
-      mass: physics.mass,
-      type: physics.mass <= 0.0 ? CANNON.Body.STATIC : CANNON.Body.DYNAMIC,
+  request({ action, buffers, payload }) {
+    const { promises, requestId: id, worker } = this;
+    this.requestId += 1;
+    return new Promise((resolve) => {
+      promises[id] = resolve;
+      worker.postMessage({
+        id,
+        action,
+        payload,
+      }, buffers);
     });
-    body.addShape(
-      geometry.collision.shape,
-      geometry.collision.offset ? (
-        new CANNON.Vec3(
-          geometry.collision.offset[0],
-          geometry.collision.offset[1],
-          geometry.collision.offset[2]
-        )
-      ) : undefined
-    );
-    body.position.set(position[0], position[1], position[2]);
-    body.quaternion.set(rotation[0], rotation[1], rotation[2], rotation[3]);
-    world.addBody(body);
-    physics.body = body;
-  }
-
-  step(delta) {
-    const { world } = this;
-    world.step(1 / 60, delta, 3);
   }
 }
 

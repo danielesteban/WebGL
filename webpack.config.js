@@ -30,6 +30,11 @@ module.exports = {
         use: 'webpack-glsl-loader',
         include: srcPath,
       },
+      {
+        test: /\.worker\.js$/,
+        use: 'worker-loader',
+        include: srcPath,
+      },
     ],
   },
   plugins: [

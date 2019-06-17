@@ -1,4 +1,4 @@
-import { mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 
 class Mesh {
   constructor({
@@ -18,6 +18,10 @@ class Mesh {
     this.position = position;
     this.rotation = rotation;
     this.scale = scale;
+    this.culling = {
+      origin: vec3.create(),
+      radius: 0,
+    };
     this.transform = mat4.create();
     this.updateTransform();
     if (onAnimationFrame) {
@@ -27,6 +31,7 @@ class Mesh {
 
   updateTransform() {
     const {
+      culling,
       geometry,
       position,
       rotation,
@@ -34,7 +39,8 @@ class Mesh {
       scale,
     } = this;
     mat4.fromRotationTranslationScale(transform, rotation, position, scale);
-    this.radius = geometry.radius * Math.max(scale[0], Math.max(scale[1], scale[2]));
+    vec3.transformMat4(culling.origin, geometry.origin, transform);
+    culling.radius = geometry.radius * Math.max(scale[0], Math.max(scale[1], scale[2]));
   }
 }
 
