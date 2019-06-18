@@ -62,12 +62,14 @@ module.exports = {
       template: path.join(srcPath, 'index.ejs'),
       title: 'WebGL',
     }),
-    new GHPagesSPAWebpackPlugin({
-      domain: 'webgl.gatunes.com',
-    }),
-    new webpack.SourceMapDevToolPlugin({
-      test: /\.js$/,
-      filename: '[hash].js.map',
-    }),
+    ...(mode === 'production' ? [
+      new GHPagesSPAWebpackPlugin({
+        domain: 'webgl.gatunes.com',
+      }),
+      new webpack.SourceMapDevToolPlugin({
+        test: /\.js$/,
+        filename: '[hash].js.map',
+      }),
+    ] : []),
   ],
 };
