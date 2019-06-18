@@ -38,10 +38,43 @@ class Physics {
     return promise;
   }
 
-  addConstraint(payload) {
+  addContactMaterial({
+    materialA,
+    materialB,
+    friction,
+    restitution,
+  }) {
+    return this.request({
+      action: 'addContactMaterial',
+      payload: {
+        materialA,
+        materialB,
+        friction,
+        restitution,
+      },
+    });
+  }
+
+  addConstraint({
+    axisA,
+    axisB,
+    bodyA,
+    bodyB,
+    pivotA,
+    pivotB,
+    type,
+  }) {
     return this.request({
       action: 'addConstraint',
-      payload,
+      payload: {
+        axisA,
+        axisB,
+        bodyA,
+        bodyB,
+        pivotA,
+        pivotB,
+        type,
+      },
     });
   }
 

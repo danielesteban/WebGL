@@ -1,8 +1,10 @@
 import {
   Body,
   Box,
+  ContactMaterial,
   Heightfield,
   HingeConstraint,
+  Material,
   NaiveBroadphase,
   PointToPointConstraint,
   Sphere,
@@ -26,6 +28,7 @@ class Physics {
 
     this.constraints = new Map();
     this.bodies = new Map();
+    this.materials = [];
     this.shapes = new Map();
     this.lastTick = context.performance.now();
   }
@@ -42,6 +45,7 @@ class Physics {
     }
     const body = new Body({
       mass: physics.mass,
+      material: this.getMaterial(physics.material || 0),
       type,
     });
     body.addShape(
@@ -56,6 +60,20 @@ class Physics {
     body.id = uuid();
     bodies.set(body.id, body);
     return body.id;
+  }
+
+  addContactMaterial({
+    materialA,
+    materialB,
+    friction,
+    restitution,
+  }) {
+    const { world } = this;
+    world.addContactMaterial(new ContactMaterial(
+      this.getMaterial(materialA),
+      this.getMaterial(materialB),
+      { friction, restitution }
+    ));
   }
 
   addConstraint({
@@ -123,6 +141,14 @@ class Physics {
       body.angularVelocity.set(...angularVelocity);
     }
     body.sleepState = 0;
+  }
+
+  getMaterial(index) {
+    const { materials } = this;
+    if (!materials[index]) {
+      materials[index] = new Material();
+    }
+    return materials[index];
   }
 
   getShape({
@@ -210,6 +236,9 @@ context.addEventListener('message', ({ data: { id, action, payload } }) => {
       response = {
         id: worker[action](payload),
       };
+      break;
+    case 'addContactMaterial':
+      worker.addContactMaterial(payload);
       break;
     default:
   }

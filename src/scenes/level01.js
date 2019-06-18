@@ -132,7 +132,7 @@ class Level01 extends Scene {
       const mesh = new Mesh({
         ...data,
         albedo: new Float32Array([0.8, 0.8, 0.8]),
-        physics: { mass: 1 },
+        physics: { mass: 10 },
       });
       this.add(mesh);
       const hinge = new Mesh({
@@ -175,7 +175,7 @@ class Level01 extends Scene {
         ]),
         geometry: geometries.box,
         material: materials.standard,
-        physics: { mass: 1 },
+        physics: { mass: 5, material: 1 },
       });
       this.add(box);
     }
@@ -235,7 +235,7 @@ class Level01 extends Scene {
             scale: new Float32Array([0.5, 0.5, 0.5]),
             geometry,
             material: materials.standard,
-            physics: { mass: 0.5 },
+            physics: { mass: 5, material: 2 },
           });
           this.add(mesh);
           return mesh;
@@ -260,6 +260,20 @@ class Level01 extends Scene {
     camera.position[1] = 1.5;
     camera.position[2] = 12;
     camera.updateTransform();
+
+    physics.addContactMaterial({
+      materialA: 0,
+      materialB: 1,
+      friction: 1.0,
+      restitution: 0,
+    });
+
+    physics.addContactMaterial({
+      materialA: 0,
+      materialB: 2,
+      friction: 0.8,
+      restitution: 0.4,
+    });
   }
 
   animate(args) {
@@ -278,7 +292,7 @@ class Level01 extends Scene {
         body,
         position: [...aux],
         rotation: [0, 0, 0, 1],
-        velocity: [...vec3.scale(aux, camera.front, 16)],
+        velocity: [...vec3.scale(aux, camera.front, 15)],
         angularVelocity: [0, 0, 0],
       });
       this.sphere = (sphere + 1) % spheres.length;
