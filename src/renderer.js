@@ -45,33 +45,33 @@ class Renderer {
       scenes,
       onUpdate: this.setScene.bind(this),
     });
+    // if (!__PRODUCTION__) {
+    this.debug = document.createElement('div');
+    this.debug.id = 'debug';
+    this.debug.counters = ['render', 'physics'].reduce((counters, id) => {
+      let count = 0;
+      let tick = 0;
+      const dom = document.createElement('div');
+      const display = document.createElement('span');
+      display.innerText = '.....';
+      dom.appendChild(document.createTextNode(`${id}: `));
+      dom.appendChild(display);
+      this.debug.appendChild(dom);
+      counters[id] = (delta) => {
+        count += 1;
+        tick += delta;
+        if (tick >= 1000) {
+          display.innerText = `${count}fps`;
+          count = 0;
+          tick = 0;
+        }
+      };
+      return counters;
+    }, {});
+    this.physics.debug = this.debug.counters.physics;
+    mount.appendChild(this.debug);
+    // }
     this.onAnimationTick();
-    if (!__PRODUCTION__) {
-      this.debug = document.createElement('div');
-      this.debug.id = 'debug';
-      this.debug.counters = ['render', 'physics'].reduce((counters, id) => {
-        let count = 0;
-        let tick = 0;
-        const dom = document.createElement('div');
-        const display = document.createElement('span');
-        display.innerText = '.....';
-        dom.appendChild(document.createTextNode(`${id}: `));
-        dom.appendChild(display);
-        this.debug.appendChild(dom);
-        counters[id] = (delta) => {
-          count += 1;
-          tick += delta;
-          if (tick >= 1000) {
-            display.innerText = `${count}fps`;
-            count = 0;
-            tick = 0;
-          }
-        };
-        return counters;
-      }, {});
-      this.physics.debug = this.debug.counters.physics;
-      mount.appendChild(this.debug);
-    }
   }
 
   onAnimationTick() {
