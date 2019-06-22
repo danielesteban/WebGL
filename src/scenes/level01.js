@@ -34,8 +34,8 @@ class Level01 extends Scene {
     const geometries = {
       ground: new Plane({
         renderer,
-        width: 128,
-        height: 128,
+        width: 512,
+        height: 512,
       }),
       heightfield: new Heightfield({
         renderer,
@@ -169,7 +169,7 @@ class Level01 extends Scene {
       albedo: new Float32Array([0.6, 0.6, 0.6]),
       position: new Float32Array([0, -2.5, 0]),
       geometry: geometries.ground,
-      material: materials.grid,
+      material: materials.standard,
       physics: { mass: 0 },
     }));
     this.add(new Mesh({
