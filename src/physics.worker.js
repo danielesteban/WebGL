@@ -13,7 +13,6 @@ import {
   Vec3,
   World,
 } from 'cannon';
-import uuid from 'uuid/v4';
 
 // eslint-disable-next-line no-restricted-globals
 const context = self;
@@ -31,6 +30,10 @@ class Physics {
     this.materials = [];
     this.shapes = new Map();
     this.lastTick = context.performance.now();
+
+    this.bodyId = 1;
+    this.constraintId = 1;
+    this.shapeId = 1;
   }
 
   addBody({
@@ -38,7 +41,13 @@ class Physics {
     position,
     rotation,
   }) {
-    const { bodies, shapes, world } = this;
+    const {
+      bodyId,
+      bodies,
+      shapes,
+      world,
+    } = this;
+    this.bodyId += 1;
     let type = physics.mass <= 0.0 ? Body.STATIC : Body.DYNAMIC;
     if (physics.kinematic) {
       type = Body.KINEMATIC;
@@ -57,7 +66,12 @@ class Physics {
     body.position.set(...position);
     body.quaternion.set(...rotation);
     world.addBody(body);
-    body.id = uuid();
+    body.id = bodyId;
+    if (physics.emitContacts) {
+      body.addEventListener('collide', ({ body: { id: bodyB } }) => (
+        this.onCollide({ bodyA: body.id, bodyB })
+      ));
+    }
     bodies.set(body.id, body);
     return body.id;
   }
@@ -85,7 +99,13 @@ class Physics {
     pivotB,
     type,
   }) {
-    const { bodies, constraints, world } = this;
+    const {
+      bodies,
+      constraintId,
+      constraints,
+      world,
+    } = this;
+    this.constraintId += 1;
     let constraint;
     switch (type) {
       case 'hinge':
@@ -111,7 +131,7 @@ class Physics {
       default:
     }
     world.addConstraint(constraint);
-    constraint.id = uuid();
+    constraint.id = constraintId;
     constraints.set(constraint.id, constraint);
     return constraint.id;
   }
@@ -161,7 +181,8 @@ class Physics {
     position,
     index,
   }) {
-    const { shapes } = this;
+    const { shapeId, shapes } = this;
+    this.shapeId += 1;
     let shape;
     switch (type) {
       case 'box':
@@ -180,17 +201,32 @@ class Physics {
           radius
         );
     }
-    shape.id = uuid();
+    shape.id = shapeId;
     shapes.set(shape.id, shape);
     return shape.id;
   }
 
+  onCollide({ bodyA, bodyB }) {
+    const { contacts } = this;
+    const bodies = contacts.get(bodyA) || [];
+    if (bodies.indexOf(bodyB) === -1) {
+      bodies.push(bodyB);
+      contacts.set(bodyA, bodies);
+    }
+  }
+
   step({ buffer }) {
-    const { bodies, lastTick, world } = this;
+    this.contacts = new Map();
+    const {
+      bodies,
+      contacts,
+      lastTick,
+      world,
+    } = this;
     const time = context.performance.now();
     const delta = (time - lastTick) / 1000;
     this.lastTick = time;
-    world.step(1 / 60, delta);
+    world.step(1 / 60, delta, 3);
     let index = 0;
     bodies.forEach(({
       type,
@@ -205,7 +241,7 @@ class Physics {
         index += 1;
       }
     });
-    return buffer;
+    return { buffer, contacts: contacts.size ? contacts : undefined };
   }
 }
 
@@ -221,12 +257,9 @@ context.addEventListener('message', ({ data: { id, action, payload } }) => {
       worker.resetBody(payload);
       break;
     case 'step': {
-      const buffer = worker.step(payload);
-      response = {
-        buffer,
-      };
+      response = worker.step(payload);
       buffers = [
-        buffer.buffer,
+        response.buffer.buffer,
       ];
       break;
     }

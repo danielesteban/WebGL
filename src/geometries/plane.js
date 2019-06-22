@@ -2,7 +2,7 @@ import Geometry from '@/geometry';
 
 class Plane extends Geometry {
   constructor({
-    context,
+    renderer,
     width,
     height,
   }) {
@@ -23,7 +23,7 @@ class Plane extends Geometry {
       2, 3, 0,
     ]);
     super({
-      context,
+      renderer,
       position,
       normal,
       index,

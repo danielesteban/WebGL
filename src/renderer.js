@@ -49,8 +49,27 @@ class Renderer {
     if (!__PRODUCTION__) {
       this.debug = document.createElement('div');
       this.debug.id = 'debug';
-      this.debug.fps = 0;
-      this.debug.tick = 0;
+      this.debug.counters = ['render', 'physics'].reduce((counters, id) => {
+        let count = 0;
+        let tick = 0;
+        const dom = document.createElement('div');
+        const display = document.createElement('span');
+        display.innerText = '.....';
+        dom.appendChild(document.createTextNode(`${id}: `));
+        dom.appendChild(display);
+        this.debug.appendChild(dom);
+        counters[id] = (delta) => {
+          count += 1;
+          tick += delta;
+          if (tick >= 1000) {
+            display.innerText = `${count}fps`;
+            count = 0;
+            tick = 0;
+          }
+        };
+        return counters;
+      }, {});
+      this.physics.debug = this.debug.counters.physics;
       mount.appendChild(this.debug);
     }
   }
@@ -60,7 +79,6 @@ class Renderer {
     const {
       camera,
       context: GL,
-      debug,
       input,
       lastTick,
       framebuffer: {
@@ -68,11 +86,16 @@ class Renderer {
         renderBuffer,
         outputBuffer,
       },
+      debug,
       scene,
     } = this;
     const time = window.performance.now();
     const delta = time - lastTick;
     this.lastTick = time;
+
+    if (debug) {
+      debug.counters.render(delta);
+    }
 
     camera.processInput({ input, delta, time });
     scene.animate({ delta, time });
@@ -116,16 +139,6 @@ class Renderer {
 
     // Post-Processing pass
     this.postprocess();
-
-    if (debug) {
-      debug.fps += 1;
-      debug.tick += delta;
-      if (debug.tick >= 1000) {
-        debug.innerText = `${debug.fps}FPS`;
-        debug.tick = 0;
-        debug.fps = 0;
-      }
-    }
   }
 
   onResize() {

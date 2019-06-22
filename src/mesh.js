@@ -10,6 +10,7 @@ class Mesh {
     material,
     physics,
     onAnimationFrame,
+    onContact,
   }) {
     this.albedo = albedo;
     this.geometry = geometry;
@@ -26,6 +27,9 @@ class Mesh {
     this.updateTransform();
     if (onAnimationFrame) {
       this.onAnimationFrame = onAnimationFrame.bind(this);
+    }
+    if (onContact) {
+      this.onContact = onContact.bind(this);
     }
   }
 

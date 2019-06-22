@@ -3,8 +3,14 @@ import { quat, vec3 } from 'gl-matrix';
 
 class Physics {
   constructor() {
-    this.bodies = [];
+    this.bodies = {
+      all: [],
+      dynamic: [],
+      emitters: [],
+      index: new Map(),
+    };
     this.buffer = new Float32Array();
+    this.lastTick = window.performance.now();
     this.promises = {};
     this.requestId = 1;
     this.worker = new Worker();
@@ -21,6 +27,7 @@ class Physics {
           physics: {
             ...mesh.physics,
             body: undefined,
+            emitContacts: !!mesh.onContact,
             collision: mesh.geometry.collision,
           },
           position: mesh.position,
@@ -29,10 +36,15 @@ class Physics {
       })
       .then(({ id }) => {
         mesh.physics.body = id;
+        this.bodies.index.set(id, mesh);
       });
+    bodies.all.push(mesh);
     if (mesh.physics.mass !== 0.0 && !mesh.physics.kinematic) {
-      bodies.push(mesh);
+      bodies.dynamic.push(mesh);
       this.bufferNeedsUpdate = true;
+    }
+    if (mesh.onContact) {
+      bodies.emitters.push(mesh);
     }
     mesh.physics.body = promise;
     return promise;
@@ -86,7 +98,10 @@ class Physics {
   }
 
   reset() {
-    this.bodies = [];
+    this.bodies.all.length = 0;
+    this.bodies.dynamic.length = 0;
+    this.bodies.emitters.length = 0;
+    this.bodies.index = new Map();
     this.bufferNeedsUpdate = true;
     return this.request({
       action: 'reset',
@@ -103,10 +118,14 @@ class Physics {
   step() {
     if (this.bufferNeedsUpdate) {
       delete this.bufferNeedsUpdate;
-      this.buffer = new Float32Array(this.bodies.length * 7);
+      this.buffer = new Float32Array(this.bodies.dynamic.length * 7);
     }
-    const { buffer } = this;
+    const { buffer, debug, lastTick } = this;
     const time = window.performance.now();
+    if (debug) {
+      debug(time - lastTick);
+      this.lastTick = time;
+    }
     return this.request({
       action: 'step',
       buffers: [buffer.buffer],
@@ -114,10 +133,10 @@ class Physics {
         buffer,
       },
     })
-      .then(({ buffer }) => {
+      .then(({ buffer, contacts }) => {
         if (!this.bufferNeedsUpdate) {
           this.buffer = buffer;
-          this.bodies.forEach((mesh, index) => {
+          this.bodies.dynamic.forEach((mesh, index) => {
             const o = index * 7;
             vec3.set(
               mesh.position,
@@ -133,6 +152,13 @@ class Physics {
               this.buffer[o + 6]
             );
             mesh.updateTransform();
+          });
+        }
+        if (contacts) {
+          this.bodies.emitters.forEach((mesh) => {
+            if (contacts.has(mesh.physics.body)) {
+              mesh.onContact(contacts.get(mesh.physics.body));
+            }
           });
         }
         const delta = window.performance.now() - time;

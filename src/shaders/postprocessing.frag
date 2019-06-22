@@ -13,7 +13,7 @@ uniform sampler2D normalTexture;
 @import ./lighting;
 @import ./sobel;
 
-const vec3 background = vec3(0.02, 0.06, 0.16);
+const vec3 background = vec3(0.2, 0.3, 0.4);
 
 void main(void) {
   vec3 color = background;
@@ -29,12 +29,12 @@ void main(void) {
 
     // lighting
     color = Lighting(texture(colorTexture, fragUV).rgb, normalize(normal), position) * 2.0;
-    // fog
-    color = mix(color, background, length(position) / 16.0);
     // edge detection
-    if (Sobel(depthTexture, resolution) >= 1.5) {
-      color = mix(background, color, 0.3);
+    if (Sobel(depthTexture, resolution) >= 2.0) {
+      color = mix(background * 0.5, color, 0.3);
     }
+    // fog
+    color = mix(color, background, min(length(vec3(position.x, 0, position.z)) / 13.0, 1.0));
   }
 
   // vignette
