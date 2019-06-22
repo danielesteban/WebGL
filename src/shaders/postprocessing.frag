@@ -35,8 +35,8 @@ void main(void) {
       color = mix(background * 0.5, color, 0.3);
     }
     // fog
-    float distance = length(vec3(position.x, 0, position.z));
-    color = Fog(distance, 0.13, color, background);
+    float distance = length(position);
+    color = Fog(distance, 0.1, color, background);
   }
 
   // vignette

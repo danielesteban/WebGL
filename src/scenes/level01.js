@@ -289,7 +289,7 @@ class Level01 extends Scene {
     FetchModel(Monkey)
       .then(model => (
         this.add(new Mesh({
-          albedo: new Float32Array([0.6, 0.6, 0.6]),
+          albedo: new Float32Array([0.8, 0.8, 0.8]),
           position: new Float32Array([0, 2.2, 0]),
           geometry: new Geometry({
             ...model,
@@ -348,16 +348,20 @@ class Level01 extends Scene {
     }
 
     // Animate the lights
-    const step = Math.PI * 2 / this.lights.length;
+    const step = Math.PI * 2 / (this.lights.length - 1);
     this.lightsAnimation += args.delta * 0.0002;
     let a = (this.lightsAnimation * 0.25) % 1;
     a = a >= 0.5 ? 1 - a : a;
-    const distance = 8 - a * 8;
+    const distance = 8 - a * 6;
     this.lights.forEach(({ mesh, position }, index) => {
       const angle = step * index - this.lightsAnimation;
-      position[0] = Math.cos(angle) * distance;
-      position[1] = Math.sin(distance + (index % 2)) + 2;
-      position[2] = Math.sin(angle) * distance;
+      if (index < this.lights.length - 1) {
+        position[0] = Math.cos(angle) * distance;
+        position[1] = Math.sin(distance) + 2;
+        position[2] = Math.sin(angle) * distance;
+      } else {
+        position[1] = Math.sin(distance) + 5;
+      }
       vec3.copy(mesh.position, position);
       mesh.position[1] -= 0.1;
       mesh.updateTransform();

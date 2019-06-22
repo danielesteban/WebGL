@@ -9,7 +9,7 @@ layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outPosition;
 
 uniform vec3 albedo;
-vec3 gridColor = vec3(0.8, 0.8, 0.8);
+vec3 gridColor = vec3(1.0, 1.0, 1.0);
 
 void main(void) {
   vec2 coord = fragPosition.xz;
