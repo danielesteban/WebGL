@@ -5,13 +5,22 @@ import Scene from '@/scene';
 import {
   GridVertex,
   GridFragment,
+  PostprocessingFragment,
   StandardVertex,
   StandardFragment,
 } from '@/shaders';
 
 class Level02 extends Scene {
   constructor(args) {
-    super(args);
+    super({
+      ...args,
+      postprocessing: {
+        fragment: PostprocessingFragment.replace(
+          'float distance = length(vec3(position.x, 0, position.z));',
+          'float distance = length(vec3(camera.x - position.x, 0, camera.z - position.z));'
+        ),
+      },
+    });
     const {
       renderer,
     } = this;
