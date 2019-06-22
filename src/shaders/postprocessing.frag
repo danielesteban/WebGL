@@ -10,6 +10,7 @@ uniform sampler2D depthTexture;
 uniform sampler2D positionTexture;
 uniform sampler2D normalTexture;
 
+@import ./fog;
 @import ./lighting;
 @import ./sobel;
 
@@ -35,7 +36,7 @@ void main(void) {
     }
     // fog
     float distance = length(vec3(position.x, 0, position.z));
-    color = mix(color, background, min(distance / 13.0, 1.0));
+    color = Fog(distance, 0.13, color, background);
   }
 
   // vignette

@@ -82,7 +82,7 @@ class Camera {
   }
 
   setAspect(aspect) {
-    mat4.perspective(this.projection, glMatrix.toRadian(60), aspect, 0.1, 1000);
+    mat4.perspective(this.projection, glMatrix.toRadian(75), aspect, 0.1, 1000);
     this.updateTransform();
   }
 

@@ -27,7 +27,7 @@ class Level01 extends Scene {
 
     // Setup camera
     camera.position[1] = 1.5;
-    camera.position[2] = 12;
+    camera.position[2] = 10;
     camera.updateTransform();
 
     // Generate geometries
@@ -201,7 +201,6 @@ class Level01 extends Scene {
     ].forEach((data) => {
       const mesh = new Mesh({
         ...data,
-        albedo: new Float32Array([0.8, 0.8, 0.8]),
         physics: { mass: 10 },
         onAnimationFrame: smoothAlbedoUpdate,
         onContact: copyAlbedoOnContact,
@@ -353,7 +352,7 @@ class Level01 extends Scene {
     this.lightsAnimation += args.delta * 0.0002;
     let a = (this.lightsAnimation * 0.25) % 1;
     a = a >= 0.5 ? 1 - a : a;
-    const distance = 8 - a * 6;
+    const distance = 8 - a * 8;
     this.lights.forEach(({ mesh, position }, index) => {
       const angle = step * index - this.lightsAnimation;
       position[0] = Math.cos(angle) * distance;
