@@ -1,6 +1,6 @@
 import Geometry from '@/geometry';
 
-class Cube extends Geometry {
+class Box extends Geometry {
   constructor({
     renderer,
     width,
@@ -111,4 +111,4 @@ class Cube extends Geometry {
   }
 }
 
-export default Cube;
+export default Box;

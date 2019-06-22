@@ -1,18 +1,35 @@
-import Geometry from '@/geometry';
+import { Box, Plane } from '@/geometries';
 import Material from '@/material';
 import Mesh from '@/mesh';
 import Scene from '@/scene';
 import {
   GridVertex,
   GridFragment,
+  StandardVertex,
+  StandardFragment,
 } from '@/shaders';
 
 class Level02 extends Scene {
   constructor(args) {
     super(args);
     const {
-      renderer: { context },
+      renderer,
     } = this;
+    const { context } = renderer;
+
+    const geometries = {
+      ground: new Plane({
+        renderer,
+        width: 512,
+        height: 512,
+      }),
+      box: new Box({
+        renderer,
+        width: 1,
+        height: 1,
+        depth: 1,
+      }),
+    };
 
     const materials = {
       grid: new Material({
@@ -22,47 +39,49 @@ class Level02 extends Scene {
           fragment: GridFragment,
         },
       }),
-    };
-
-    const geometries = {
-      ground: new Geometry({
+      standard: new Material({
         context,
-        position: new Float32Array([
-          -20, 0, 20,
-          20, 0, 20,
-          20, 0, -20,
-          -20, 0, -20,
-        ]),
-        normal: new Float32Array([
-          0, 1, 0,
-          0, 1, 0,
-          0, 1, 0,
-          0, 1, 0,
-        ]),
-        index: new Uint16Array([
-          0, 1, 2,
-          2, 3, 0,
-        ]),
+        shaders: {
+          vertex: StandardVertex,
+          fragment: StandardFragment,
+        },
       }),
     };
 
-    [
-      // Ground
-      {
-        albedo: new Float32Array([0.2, 0.3, 0.2]),
-        geometry: geometries.ground,
-        material: materials.grid,
-      },
-    ].forEach(data => (
-      this.add(new Mesh(data))
-    ));
+    // Spawn Ground
+    this.add(new Mesh({
+      albedo: new Float32Array([0.2, 0.3, 0.2]),
+      geometry: geometries.ground,
+      material: materials.grid,
+    }));
 
-    this.lights.forEach(({ position, color }, index) => {
-      position.set([
-        (index - 8) * 1.5, 1, -6 + (index % 2) * 3,
+    // Spawn some boxes
+    for (let i = 0; i < this.lights.length; i += 1) {
+      const scale = 0.5 + Math.random();
+      const box = new Mesh({
+        albedo: new Float32Array([
+          Math.random(),
+          Math.random(),
+          Math.random(),
+        ]),
+        position: new Float32Array([
+          (Math.random() * 8 - 4) * 2 * scale,
+          scale * 0.5,
+          (Math.random() * 8 - 4) * 2 * scale,
+        ]),
+        scale: new Float32Array([scale, scale, scale]),
+        geometry: geometries.box,
+        material: materials.standard,
+      });
+      this.add(box);
+      const light = this.lights[i];
+      light.position.set([
+        box.position[0],
+        box.position[1] + scale,
+        box.position[2],
       ]);
-      color.set([Math.random(), Math.random(), Math.random()]);
-    });
+      light.color.set(box.albedo);
+    }
   }
 }
 

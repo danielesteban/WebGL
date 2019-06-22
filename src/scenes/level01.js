@@ -1,6 +1,6 @@
 import { quat, vec3 } from 'gl-matrix';
 import Geometry from '@/geometry';
-import { Cube, Heightfield, Plane } from '@/geometries';
+import { Box, Heightfield, Plane } from '@/geometries';
 import Material from '@/material';
 import Mesh from '@/mesh';
 import FetchModel from '@/model';
@@ -53,25 +53,25 @@ class Level01 extends Scene {
           return d * 0.2 - Math.random() * 0.2;
         })),
       }),
-      light: new Cube({
+      light: new Box({
         renderer,
         width: 0.15,
         height: 0.05,
         depth: 0.15,
       }),
-      hinge: new Cube({
+      hinge: new Box({
         renderer,
         width: 1,
         height: 0.2,
         depth: 0.2,
       }),
-      target: new Cube({
+      target: new Box({
         renderer,
         width: 1,
         height: 2,
         depth: 0.1,
       }),
-      box: new Cube({
+      box: new Box({
         renderer,
         width: 0.75,
         height: 0.75,
